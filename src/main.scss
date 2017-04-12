@@ -1,0 +1,68 @@
+body,
+html {
+    height: 100%;
+    margin: 0;
+}
+
+#menu {
+    background: #afcbf0;
+    display: block;
+    width: 20%;
+    height: 100%;
+    float: left;
+}
+
+.menuButton {
+    display: block;
+    width: 95%;
+    //height: 10%;
+    margin: 0 auto;
+    margin-top: 20px;
+    font-size: 1vw;
+    text-align: center;
+}
+
+.imageInput {
+    width: 85%;
+    display: block;
+    margin: 0 auto;
+    margin-top: 20px;
+}
+
+#workField {
+    background: #d2e5f4;
+    display: block;
+    width: 80%;
+    height: 100%;
+    float: left;
+}
+#drawField {
+	border: 3px #6a7ce2 solid;
+	background: white;
+}
+.form{
+	margin-left:10px;
+	margin-top:10px;
+}
+.coordinate-input {
+	width: 70px;
+}
+.coordinate-span{
+	display: inline-block;
+	width: 20px;
+}
+textarea{
+	max-width: 300px;
+}
+#nodes-input{
+	height: 200px;
+}
+img{
+	width: 200px;
+	//height: 200px;
+	margin-top: 20px;
+}
+.algorithm{
+	margin-left:10px;
+	margin-top:10px;
+}
