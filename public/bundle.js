@@ -106,12 +106,77 @@ function AdjacencyList() {
 		}
 	};
 
-	this.removeEdge = function (node1Name, node2Name) {
-		delete this.nodes[node1Name];
-		delete this.nodes[node2Name];
+	this.removeNode = function (nodeName) {
+		delete this.nodes[nodeName];
 		for (var node in this.nodes) {
-			delete this.nodes[node].neighbors[node1Name];
-			delete this.nodes[node].neighbors[node2Name];
+			delete this.nodes[node].neighbors[nodeName];
+		}
+	};
+
+	this.removeEdge = function (node1Name, node2Name) {
+		delete this.nodes[node1Name].neighbors[node2Name];
+		delete this.nodes[node2Name].neighbors[node1Name];
+	};
+
+	this.getConnectedComponents = function () {
+		var components = [];
+		var checkedNodes = [];
+
+		for (var key in this.nodes) {
+			if (checkedNodes[key]) continue;
+
+			checkedNodes[key] = true;
+
+			var component = new AdjacencyList();
+
+			component.addNode(key);
+			addNeighbors.call(this, key, component, checkedNodes);
+			components.push(component);
+		}
+
+		function addNeighbors(nodeName, component, checkedNodes) {
+			for (var key in this.nodes[nodeName].neighbors) {
+				component.addNode(key);
+				component.addEdge(nodeName, key);
+
+				if (!checkedNodes[key]) {
+					checkedNodes[key] = true;
+					addNeighbors.call(this, key, component, checkedNodes);
+				}
+			}
+		}
+
+		return components;
+	};
+
+	this.print = function (textGroup) {
+		while (textGroup.lastChild) {
+			textGroup.removeChild(textGroup.lastChild);
+		}
+
+		var count = 0;
+
+		var tspan = createTSpan("Списки смежности:", 50, (count + 1) * 50);
+		textGroup.appendChild(tspan);
+		count++;
+
+		for (var key1 in this.nodes) {
+			var currText = key1 + ": ";
+			for (var key2 in this.nodes[key1].neighbors) {
+				currText += key2 + ", ";
+			}
+			tspan = createTSpan(currText, 50, (count + 1) * 50);
+			textGroup.appendChild(tspan);
+
+			count++;
+		}
+
+		function createTSpan(text, x, y) {
+			var tspan = document.createElementNS("http://www.w3.org/2000/svg", "text");
+			tspan.setAttribute("x", x);
+			tspan.setAttribute("y", y);
+			tspan.textContent = text;
+			return tspan;
 		}
 	};
 }
@@ -460,7 +525,7 @@ planarityFirstStep.addEventListener('click', function () {
 
 	var bridges = (0, _findBridges.findBridges)(adjacencyList.nodes, textGroup);
 
-	adjacencyList.removeEdge("a", "b");
+	var components = adjacencyList.getConnectedComponents();
 });
 
 /***/ })

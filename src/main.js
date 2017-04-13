@@ -71,5 +71,5 @@ planarityFirstStep.addEventListener('click', function() {
 	
 	var bridges = findBridges(adjacencyList.nodes, textGroup);
 	
-	adjacencyList.removeEdge("a", "b");
+	var components = adjacencyList.getConnectedComponents();
 });
