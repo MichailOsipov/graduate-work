@@ -2,6 +2,7 @@ import {firstStep, makeOneStabilization, startStabilization} from 'spring-embedd
 
 import AdjacencyList from 'adjacency-list';
 import {findBridges} from 'find-bridges';
+import HammaAlgorithmWorker from 'hamma-algorithm';
 
 import './main.scss';
 
@@ -66,10 +67,9 @@ var planarityFirstStep = document.getElementById("find-bridges");
 planarityFirstStep.addEventListener('click', function() {
 	var nodesText = document.getElementById("nodes-input").value.replace(/ |\n/g,'').split(';');
 	
-	var adjacencyList = new AdjacencyList();	
-	adjacencyList.initializeFromText(nodesText);	
+	var initGraph = new AdjacencyList();
+	initGraph.initializeFromText(nodesText);
 	
-	var bridges = findBridges(adjacencyList.nodes, textGroup);
-	
-	var components = adjacencyList.getConnectedComponents();
+	var hammaAlgorithmWorker = new HammaAlgorithmWorker(drawField);
+	hammaAlgorithmWorker.makePlanarity(initGraph);
 });

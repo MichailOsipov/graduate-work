@@ -33,7 +33,7 @@ function printNodesAndBridgesText(nodes, bridges, textGroup) {
 	count++;
 	
 	for (var i = 0; i < bridges.length; i++, count++) {		
-		tspan = createTSpan(bridges[i].first + " -> " + bridges[i].second + "; ", 50, (count + 1) * 50);
+		tspan = createTSpan(bridges[i].begin + " -> " + bridges[i].end + "; ", 50, (count + 1) * 50);
 		textGroup.appendChild(tspan);		
 	}
 }
@@ -43,6 +43,7 @@ function calculateDepthSearchAndFindBridges(nodes) {
 	
 	var num = {};
 	var top = {};
+	//edges we walk in depth search
 	var bypassEdges = [];
 	
 	for (var key in nodes) {
@@ -63,8 +64,8 @@ function calculateDepthSearchAndFindBridges(nodes) {
 		for (var key in nodes[currNode].neighbors) {
 			if(num[key] == 0) {
 				bypassEdges.push({
-					first: currNode,
-					second: key
+					begin: currNode,
+					end: key
 				});
 				searchNode(currNode, key);
 				top[currNode] = Math.min(top[currNode], top[key]);
@@ -73,18 +74,18 @@ function calculateDepthSearchAndFindBridges(nodes) {
 				if(parentNode != key)
 					top[currNode] = Math.min(top[currNode], num[key]);
 			}
-		}		
+		}
 	}
 	
 	return bypassEdges.filter((edge) => {
-		return top[edge.second] == num[edge.second];
+		return top[edge.end] == num[edge.end];
 	});
 }
 
 //nodes text: ["a->b", "b->c", ""]
 function findBridges(nodes, textGroup) {
 	var bridges = calculateDepthSearchAndFindBridges(nodes);
-	printNodesAndBridgesText(nodes, bridges, textGroup);
+	//printNodesAndBridgesText(nodes, bridges, textGroup);
 	return bridges;
 }
 

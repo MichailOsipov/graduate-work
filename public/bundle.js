@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 4);
+/******/ 	return __webpack_require__(__webpack_require__.s = 5);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -81,8 +81,8 @@ function AdjacencyList() {
 
 	this.addNode = function (nodeName) {
 		if (this.nodes[nodeName] == undefined) this.nodes[nodeName] = {
-			isFictious: false,
-			neighbors: []
+			type: "normal",
+			neighbors: {}
 		};
 	};
 
@@ -116,6 +116,12 @@ function AdjacencyList() {
 	this.removeEdge = function (node1Name, node2Name) {
 		delete this.nodes[node1Name].neighbors[node2Name];
 		delete this.nodes[node2Name].neighbors[node1Name];
+	};
+
+	this.removeEdges = function (edges) {
+		for (var i = 0; i < edges.length; i++) {
+			this.removeEdge(edges[i].begin, edges[i].end);
+		}
 	};
 
 	this.getConnectedComponents = function () {
@@ -228,7 +234,7 @@ function printNodesAndBridgesText(nodes, bridges, textGroup) {
 	count++;
 
 	for (var i = 0; i < bridges.length; i++, count++) {
-		tspan = createTSpan(bridges[i].first + " -> " + bridges[i].second + "; ", 50, (count + 1) * 50);
+		tspan = createTSpan(bridges[i].begin + " -> " + bridges[i].end + "; ", 50, (count + 1) * 50);
 		textGroup.appendChild(tspan);
 	}
 }
@@ -238,6 +244,7 @@ function calculateDepthSearchAndFindBridges(nodes) {
 
 	var num = {};
 	var top = {};
+	//edges we walk in depth search
 	var bypassEdges = [];
 
 	for (var key in nodes) {
@@ -258,8 +265,8 @@ function calculateDepthSearchAndFindBridges(nodes) {
 		for (var key in nodes[currNode].neighbors) {
 			if (num[key] == 0) {
 				bypassEdges.push({
-					first: currNode,
-					second: key
+					begin: currNode,
+					end: key
 				});
 				searchNode(currNode, key);
 				top[currNode] = Math.min(top[currNode], top[key]);
@@ -270,14 +277,14 @@ function calculateDepthSearchAndFindBridges(nodes) {
 	}
 
 	return bypassEdges.filter(function (edge) {
-		return top[edge.second] == num[edge.second];
+		return top[edge.end] == num[edge.end];
 	});
 }
 
 //nodes text: ["a->b", "b->c", ""]
 function findBridges(nodes, textGroup) {
 	var bridges = calculateDepthSearchAndFindBridges(nodes);
-	printNodesAndBridgesText(nodes, bridges, textGroup);
+	//printNodesAndBridgesText(nodes, bridges, textGroup);
 	return bridges;
 }
 
@@ -285,6 +292,123 @@ exports.findBridges = findBridges;
 
 /***/ }),
 /* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+
+var _adjacencyList = __webpack_require__(0);
+
+var _adjacencyList2 = _interopRequireDefault(_adjacencyList);
+
+var _findBridges = __webpack_require__(1);
+
+var _planeWorker = __webpack_require__(6);
+
+var _planeWorker2 = _interopRequireDefault(_planeWorker);
+
+var _svgGraphDrawer = __webpack_require__(8);
+
+var _svgGraphDrawer2 = _interopRequireDefault(_svgGraphDrawer);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function HammaAlgorithmWorker(svgField) {
+	this.svgField = svgField;
+	this.makePlanarity = function (graph) {
+		var bridges = (0, _findBridges.findBridges)(graph.nodes);
+		graph.removeEdges(bridges);
+		var components = graph.getConnectedComponents();
+		for (var i = 0; i < components.length; i++) {
+			this.planarizeGraph(components[i]);
+		}
+	};
+
+	//graph without bridges
+	this.planarizeGraph = function (graph) {
+		var loop = this.findLoop(graph);
+		if (loop.path.length == 0) return;
+		var planes = []; /*
+                   planes.push(new Plane(loop.path, false));
+                   planes.push(new Plane(loop.path, true)); //outer edge(plane)*/
+		var planeWorker = new _planeWorker2.default();
+		planeWorker.initializeFromLoop(loop.path);
+		var svgGraphDrawer = new _svgGraphDrawer2.default();
+		svgGraphDrawer.draw(planeWorker.nodes, planeWorker.edges, svgField);
+		graph.removeEdges(loop.edges);
+
+		this.findSegments(graph, loop);
+		//get segments
+	};
+
+	//awful algorithm, works in n^n time
+	this.findLoop = function (graph) {
+		var maxLoopLength = 0;
+		var pathResult = [];
+
+		for (var key in graph.nodes) {
+			var path = [];
+			path.push(key);
+
+			searchLoopInNeighbors(path.slice(), key, graph);
+		}
+
+		return transformPathResultToLoopAndEdges(pathResult);
+
+		function searchLoopInNeighbors(path, nodeName, graph) {
+			for (var key in graph.nodes[nodeName].neighbors) {
+				//if node already was in our path we compare loop length with max loop length
+				var loopLength = getLoopLength(path, key);
+				if (loopLength > maxLoopLength) {
+					maxLoopLength = loopLength;
+					pathResult = path.slice();
+				} else if (loopLength === 0) {
+					var newPath = path.slice();
+					newPath.push(key);
+					searchLoopInNeighbors(newPath, key, graph);
+				}
+			}
+
+			function getLoopLength(path, nodeName) {
+				for (var i = 0; i < path.length; i++) {
+					if (path[i] === nodeName) return path.length - i;
+				}
+				return 0;
+			}
+		}
+
+		function transformPathResultToLoopAndEdges(pathResult) {
+			var loop = [];
+
+			for (var i = 0; i < pathResult.length - 1; i++) {
+				loop.push({
+					begin: pathResult[i],
+					end: pathResult[i + 1]
+				});
+			}
+			loop.push({
+				begin: pathResult[0],
+				end: pathResult[pathResult.length - 1]
+			});
+
+			return {
+				path: pathResult,
+				edges: loop
+			};
+		}
+	};
+	//find all segments that "touches" a loop
+	this.findSegments = function (graph, loop) {};
+}
+
+exports.default = HammaAlgorithmWorker;
+
+/***/ }),
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -443,19 +567,19 @@ exports.makeOneStabilization = makeOneStabilization;
 exports.startStabilization = startStabilization;
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports) {
 
 // removed by extract-text-webpack-plugin
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var _springEmbedder = __webpack_require__(2);
+var _springEmbedder = __webpack_require__(3);
 
 var _adjacencyList = __webpack_require__(0);
 
@@ -463,7 +587,11 @@ var _adjacencyList2 = _interopRequireDefault(_adjacencyList);
 
 var _findBridges = __webpack_require__(1);
 
-__webpack_require__(3);
+var _hammaAlgorithm = __webpack_require__(2);
+
+var _hammaAlgorithm2 = _interopRequireDefault(_hammaAlgorithm);
+
+__webpack_require__(4);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -520,13 +648,210 @@ var planarityFirstStep = document.getElementById("find-bridges");
 planarityFirstStep.addEventListener('click', function () {
 	var nodesText = document.getElementById("nodes-input").value.replace(/ |\n/g, '').split(';');
 
-	var adjacencyList = new _adjacencyList2.default();
-	adjacencyList.initializeFromText(nodesText);
+	var initGraph = new _adjacencyList2.default();
+	initGraph.initializeFromText(nodesText);
 
-	var bridges = (0, _findBridges.findBridges)(adjacencyList.nodes, textGroup);
-
-	var components = adjacencyList.getConnectedComponents();
+	var hammaAlgorithmWorker = new _hammaAlgorithm2.default(drawField);
+	hammaAlgorithmWorker.makePlanarity(initGraph);
 });
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+
+var _plane = __webpack_require__(7);
+
+var _plane2 = _interopRequireDefault(_plane);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var canvasSize = {
+	width: 800,
+	height: 800
+};
+
+var nodeRadius = 15;
+
+var canvasCorners = {
+	topLeft: {
+		x: nodeRadius,
+		y: nodeRadius,
+		type: "fictive"
+	},
+	topRight: {
+		x: canvasSize.width - nodeRadius,
+		y: nodeRadius,
+		type: "fictive"
+	},
+	bottomLeft: {
+		x: nodeRadius,
+		y: canvasSize.height - nodeRadius,
+		type: "fictive"
+	},
+	bottomRight: {
+		x: canvasSize.width - nodeRadius,
+		y: canvasSize.height - nodeRadius,
+		type: "fictive"
+	}
+};
+
+var center = {
+	x: 400,
+	y: 400
+};
+
+function PlaneWorker() {
+	this.initializeFromLoop = function (loop) {
+		this.nodes = {};
+		this.edges = [];
+
+		var radius = loop.length * 25;
+		radius = Math.min(radius, 300);
+
+		var angle = 2 * Math.PI / loop.length;
+
+		for (var i = 0; i < loop.length; i++) {
+			this.nodes[loop[i]] = {
+				x: center.x + radius * Math.cos(i * angle),
+				y: center.y + radius * Math.sin(i * angle),
+				type: "normal"
+			};
+		}
+
+		for (var i = 0; i < loop.length - 1; i++) {
+			this.edges.push({
+				begin: loop[i],
+				end: loop[i + 1]
+			});
+		}
+
+		this.edges.push({
+			begin: loop[0],
+			end: loop[loop.length - 1]
+		});
+
+		//понять, надо ли добавить фиктивные ребра
+
+		this.nodes["topLeft"] = canvasCorners.topLeft;
+		this.nodes["topRight"] = canvasCorners.topRight;
+		this.nodes["bottomLeft"] = canvasCorners.bottomLeft;
+		this.nodes["bottomRight"] = canvasCorners.bottomRight;
+		this.nodes["touchPoint"] = {
+			x: canvasSize.width - nodeRadius,
+			y: this.nodes[loop[0]].y,
+			type: "fictive"
+		};
+
+		this.planes = [];
+		this.planes.push(new _plane2.default(loop.slice()));
+		var outerLoop = loop.slice();
+		outerLoop.push(loop[0]);
+		outerLoop.push("touchPoint");
+		outerLoop.push("topRight");
+		outerLoop.push("topLeft");
+		outerLoop.push("bottomLeft");
+		outerLoop.push("bottomRight");
+		outerLoop.push("touchPoint");
+		this.planes.push(new _plane2.default(outerLoop)); //добавь тип грани(внутр внешн)
+	};
+}
+
+exports.default = PlaneWorker;
+
+/***/ }),
+/* 7 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+//this class works with coordinates in canvas
+function Plane(loop) {
+	this.loop = loop;
+	//add chain to plane, divide it to two planes(edges)
+	this.addChain = function () {};
+}
+
+exports.default = Plane;
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+function SvgGraphDrawer() {
+	this.draw = function (nodes, edges, svgField) {
+		this.svgField = svgField;
+		this.initializeField();
+		this.drawNodes(nodes);
+		this.drawEdges(nodes, edges);
+	};
+	this.initializeField = function () {
+		this.svgField.innerHTML = "";
+
+		this.nodesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+		this.nodesGroup.setAttribute('id', 'nodes');
+
+		this.edgesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+		this.edgesGroup.setAttribute('id', 'edges');
+
+		this.svgField.appendChild(this.edgesGroup);
+		this.svgField.appendChild(this.nodesGroup);
+	};
+
+	this.drawNodes = function (nodes) {
+		for (var key in nodes) {
+			var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+			circle.setAttribute('cx', nodes[key].x);
+			circle.setAttribute('cy', nodes[key].y);
+			circle.setAttribute('r', 15);
+			if (nodes[key].type === "fictive") {
+				circle.setAttribute('stroke-dasharray', "5");
+			}
+			circle.setAttribute('stroke', "black");
+			circle.setAttribute('stroke-width', 2);
+			circle.setAttribute('fill', "white");
+			this.nodesGroup.appendChild(circle);
+
+			var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+			text.setAttribute('x', nodes[key].x - 2);
+			text.setAttribute('y', nodes[key].y + 2);
+			text.setAttribute('fill', "black");
+			text.innerHTML = key;
+			this.nodesGroup.appendChild(text);
+		}
+	};
+
+	this.drawEdges = function (nodes, edges) {
+		for (var i = 0; i < edges.length; i++) {
+			var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+			line.setAttribute('x1', nodes[edges[i].begin].x);
+			line.setAttribute('y1', nodes[edges[i].begin].y);
+			line.setAttribute('x2', nodes[edges[i].end].x);
+			line.setAttribute('y2', nodes[edges[i].end].y);
+			line.setAttribute('stroke', "black");
+			line.setAttribute('stroke-width', 2);
+			this.edgesGroup.appendChild(line);
+		}
+	};
+}
+
+exports.default = SvgGraphDrawer;
 
 /***/ })
 /******/ ]);

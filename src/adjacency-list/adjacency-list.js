@@ -4,8 +4,8 @@ function AdjacencyList() {
 	this.addNode = function (nodeName) {
 		if(this.nodes[nodeName]==undefined)
 				this.nodes[nodeName] = {
-					isFictious: false,
-					neighbors: []
+					type: "normal",
+					neighbors: {}
 					};
 	}
 	
@@ -20,7 +20,7 @@ function AdjacencyList() {
 			if (nodesText[i]!=="") {
 				var currNode = nodesText[i].split("->");
 				this.addNode(currNode[0]);
-						
+				
 				if(currNode[1])	{
 					this.addNode(currNode[1]);
 					this.addEdge(currNode[0], currNode[1]);
@@ -41,6 +41,12 @@ function AdjacencyList() {
 		delete this.nodes[node2Name].neighbors[node1Name];
 	}
 	
+	this.removeEdges = function (edges) {
+		for (var i = 0; i < edges.length; i++) {
+			this.removeEdge(edges[i].begin, edges[i].end);
+		}
+	}
+	
 	this.getConnectedComponents = function () {
 		var components = [];
 		var checkedNodes = [];
@@ -58,7 +64,7 @@ function AdjacencyList() {
 		}
 		
 		function addNeighbors(nodeName, component, checkedNodes) {
-			for (var key in this.nodes[nodeName].neighbors) {				
+			for (var key in this.nodes[nodeName].neighbors) {
 				component.addNode(key);
 				component.addEdge(nodeName, key);
 				
@@ -73,9 +79,9 @@ function AdjacencyList() {
 	}
 	
 	this.print = function (textGroup) {
-	    while (textGroup.lastChild) {
-            textGroup.removeChild(textGroup.lastChild);
-        }
+		while (textGroup.lastChild) {
+			textGroup.removeChild(textGroup.lastChild);
+		}
 
 		var count = 0;
 	
@@ -102,8 +108,6 @@ function AdjacencyList() {
 			return tspan;
 		}
 	}
-		
-		
 }
 
 export default AdjacencyList;
