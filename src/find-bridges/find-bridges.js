@@ -84,9 +84,7 @@ function calculateDepthSearchAndFindBridges(nodes) {
 
 //nodes text: ["a->b", "b->c", ""]
 function findBridges(nodes, textGroup) {
-	var bridges = calculateDepthSearchAndFindBridges(nodes);
-	//printNodesAndBridgesText(nodes, bridges, textGroup);
-	return bridges;
+	return calculateDepthSearchAndFindBridges(nodes);
 }
 
 export {findBridges};

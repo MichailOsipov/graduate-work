@@ -18,12 +18,12 @@
     "webpack": "^2.3.3"
   },
   "browser": {
-	"spring-embedder": "./src/spring-embedder/spring-embedder",
-	"hamma-algorithm": "./src/hamma-algorithm/hamma-algorithm",
-	"find-bridges": "./src/find-bridges/find-bridges",
-	"adjacency-list": "./src/adjacency-list/adjacency-list",	
-	"plane": "./src/plane/plane",	
-	"plane-worker": "./src/plane-worker/plane-worker",	
-	"svg-graph-drawer": "./src/svg-graph-drawer/svg-graph-drawer"
+    "spring-embedder": "./src/spring-embedder/spring-embedder",
+    "hamma-algorithm": "./src/hamma-algorithm/hamma-algorithm",
+    "find-bridges": "./src/find-bridges/find-bridges",
+    "adjacency-list": "./src/adjacency-list/adjacency-list",
+    "plane": "./src/plane/plane",
+    "plane-worker": "./src/plane-worker/plane-worker",
+    "svg-graph-drawer": "./src/svg-graph-drawer/svg-graph-drawer"
   }
 }

@@ -33,7 +33,10 @@ d->e; d->f; d->k; d->l;
 e->f; e->k; e->l;
 f->k;f->l;
 k->l;`;*/
-
+/*1->2;1->3;1->4;1->4;1->5;
+2->3;2->4;2->5;
+3->4;3->5;
+4->5;*/
 var nodesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
 nodesGroup.setAttribute('id', 'nodes');
 

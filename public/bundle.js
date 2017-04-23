@@ -283,9 +283,7 @@ function calculateDepthSearchAndFindBridges(nodes) {
 
 //nodes text: ["a->b", "b->c", ""]
 function findBridges(nodes, textGroup) {
-	var bridges = calculateDepthSearchAndFindBridges(nodes);
-	//printNodesAndBridgesText(nodes, bridges, textGroup);
-	return bridges;
+	return calculateDepthSearchAndFindBridges(nodes);
 }
 
 exports.findBridges = findBridges;
@@ -331,18 +329,31 @@ function HammaAlgorithmWorker(svgField) {
 	//graph without bridges
 	this.planarizeGraph = function (graph) {
 		var loop = this.findLoop(graph);
-		if (loop.path.length == 0) return;
-		var planes = []; /*
-                   planes.push(new Plane(loop.path, false));
-                   planes.push(new Plane(loop.path, true)); //outer edge(plane)*/
+		if (loop.path.length == 0) return; //дать координаты или что-то еще, если одна вершина
 		var planeWorker = new _planeWorker2.default();
 		planeWorker.initializeFromLoop(loop.path);
 		var svgGraphDrawer = new _svgGraphDrawer2.default();
 		svgGraphDrawer.draw(planeWorker.nodes, planeWorker.edges, svgField);
-		graph.removeEdges(loop.edges);
+		graph.removeEdges(loop.edges); //убрать также вершины ни с чем не соединенные //мб не надо
 
-		this.findSegments(graph, loop);
-		//get segments
+		var segments = this.findSegments(graph, loop.path);
+		//while segments.length != 0
+		var chain;
+		while (segments.length != 0) {
+			this.calculateGammaFromSegments(segments, planeWorker.planes); //в поиске пути в многоугольнике - добавить реализацию использования фиктивных ребер (внешняя грань)
+			segments.sort(function (segment1, segment2) {
+				return segment1.gammaCount > segment2.gammaCount ? 1 : -1;
+			});
+
+			//удалить плохие ребра у сегмента если gammaCount = 0
+			//если у сегмента одна контактная вершина - сделать доп. проверку, или метод поиска цепи //добавить список уже уложенных вершин
+			chain = this.findChain(segments[0], segments[0].contactNodes[0], segments[0].contactNodes[1]);
+			//сделать приоритет грани, чтобы outer грань выбиралась последней
+			//удалить цепь, собрать новые сегменты
+			//уложить цепь, получить новые грани (добавить проверку, если только одна контактная вершина)
+			//посчитать заного gamma
+			planeWorker.addChain(chain, segments[0].planesIn[0]);
+		}
 	};
 
 	//awful algorithm, works in n^n time
@@ -401,8 +412,139 @@ function HammaAlgorithmWorker(svgField) {
 			};
 		}
 	};
-	//find all segments that "touches" a loop
-	this.findSegments = function (graph, loop) {};
+
+	//find all segments that "touches" an added nodes
+	this.findSegments = function (graph, addedNodes) {
+		var visitedNodes = {};
+		var segments = [];
+
+		for (var key in graph.nodes) {
+			if (visitedNodes[key]) continue;
+			visitedNodes[key] = true;
+
+			if (includes(addedNodes, key)) {
+				checkContactNode(key, graph, segments, addedNodes);
+				continue;
+			}
+			var segment = {
+				contactNodes: [],
+				graph: new _adjacencyList2.default()
+			};
+			segment.graph.addNode(key);
+			searchSegment(segment, key, addedNodes, graph);
+			segments.push(segment);
+		}
+
+		return segments;
+
+		function includes(array, key) {
+			for (var i = 0; i < array.length; i++) {
+				if (array[i] === key) return true;
+			}
+
+			return false;
+		}
+
+		function checkContactNode(node, graph, segments, addedNodes) {
+			for (var neighbor in graph.nodes[node].neighbors) {
+				if (includes(addedNodes, neighbor) && !visitedNodes[neighbor]) {
+					var segment = {
+						contactNodes: [],
+						graph: new _adjacencyList2.default()
+					};
+					segment.graph.addNode(node);
+					segment.contactNodes.push(node);
+
+					segment.graph.addNode(neighbor);
+					segment.contactNodes.push(neighbor);
+
+					segment.graph.addEdge(node, neighbor);
+					segments.push(segment);
+				}
+			}
+		}
+
+		//node is not in the addedNodes
+		function searchSegment(segment, node, addedNodes, graph) {
+			visitedNodes[node] = true;
+			for (var neighbor in graph.nodes[node].neighbors) {
+
+				segment.graph.addNode(neighbor);
+				segment.graph.addEdge(node, neighbor);
+
+				if (includes(addedNodes, neighbor)) {
+					segment.contactNodes.push(neighbor);
+					continue;
+				}
+
+				if (!visitedNodes[neighbor]) {
+					searchSegment(segment, neighbor, addedNodes, graph);
+				}
+			}
+		}
+	};
+
+	this.calculateGammaFromSegments = function (segments, planes) {
+		for (var i = 0; i < segments.length; i++) {
+			segments[i].planesIn = [];
+			var gammaCount = 0;
+			for (var j = 0; j < planes.length; j++) {
+				if (isSegmentIn(segments[i].contactNodes, planes[i].loop)) {
+					gammaCount++;
+					segments[i].planesIn.push(planes[i]);
+				}
+			}
+			segments[i].gammaCount = gammaCount;
+		}
+
+		function isSegmentIn(contactNodes, loop) {
+			for (var i = 0; i < contactNodes.length; i++) {
+				var isNodeInLoop = false;
+				for (var j = 0; j < loop.length; j++) {
+					if (contactNodes[i] === loop[j].name) {
+						isNodeInLoop = true;
+						break;
+					}
+				}
+				if (!isNodeInLoop) {
+					return false;
+				}
+			}
+			return true;
+		}
+	};
+
+	//Find path from start to end in segment
+	this.findChain = function (segment, start, end) {
+		var path = [];
+		path.push(start);
+
+		var visitedNodes = {};
+		if (end === undefined) {
+			return deepSearch(segment, undefined, start, start, path);
+		}
+		return deepSearch(segment, undefined, start, end, path);
+
+		function deepSearch(segment, prev, current, end, path) {
+			for (var key in segment.graph.nodes[current].neighbors) {
+				if (key === prev) continue;
+				if (visitedNodes[key]) continue;
+				if (key === end) {
+					path.push(end);
+					return path;
+				}
+
+				visitedNodes[key] = true;
+				var newPath = path.slice();
+				newPath.push(key);
+				var res = deepSearch(segment, current, key, end, newPath);
+				if (res != []) {
+					return res;
+				}
+			}
+			return [];
+		}
+	};
 }
 
 exports.default = HammaAlgorithmWorker;
@@ -614,7 +756,10 @@ d->e; d->f; d->k; d->l;
 e->f; e->k; e->l;
 f->k;f->l;
 k->l;`;*/
-
+/*1->2;1->3;1->4;1->4;1->5;
+2->3;2->4;2->5;
+3->4;3->5;
+4->5;*/
 var nodesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
 nodesGroup.setAttribute('id', 'nodes');
 
@@ -708,6 +853,7 @@ var center = {
 };
 
 function PlaneWorker() {
+	//добавить хранилище контактных вершин
 	this.initializeFromLoop = function (loop) {
 		this.nodes = {};
 		this.edges = [];
@@ -750,16 +896,120 @@ function PlaneWorker() {
 		};
 
 		this.planes = [];
-		this.planes.push(new _plane2.default(loop.slice()));
-		var outerLoop = loop.slice();
-		outerLoop.push(loop[0]);
-		outerLoop.push("touchPoint");
-		outerLoop.push("topRight");
-		outerLoop.push("topLeft");
-		outerLoop.push("bottomLeft");
-		outerLoop.push("bottomRight");
-		outerLoop.push("touchPoint");
-		this.planes.push(new _plane2.default(outerLoop)); //добавь тип грани(внутр внешн)
+		this.planes.push(new _plane2.default(loop.map(function (node) {
+			return {
+				name: node,
+				isFictive: false
+			};
+		}), false));
+		var outerLoop = loop.map(function (node) {
+			return {
+				name: node,
+				isFictive: false
+			};
+		});
+		outerLoop.push({
+			name: loop[0],
+			isFictive: false
+		});
+		outerLoop.push({
+			name: "touchPoint",
+			isFictive: true
+		});
+		outerLoop.push({
+			name: "topRight",
+			isFictive: true
+		});
+		outerLoop.push({
+			name: "topLeft",
+			isFictive: true
+		});
+		outerLoop.push({
+			name: "bottomLeft",
+			isFictive: true
+		});
+		outerLoop.push({
+			name: "bottomRight",
+			isFictive: true
+		});
+		outerLoop.push({
+			name: "touchPoint",
+			isFictive: true
+		});
+		this.planes.push(new _plane2.default(outerLoop, true)); //добавь тип грани(внутр внешн)
+	};
+
+	this.addChain = function (chain, plane) {
+		findTriangles(plane);
+
+		function findTriangles(plane) {
+			var triangles = [];
+
+			alert(areCrossing({
+				x: 1,
+				y: 3
+			}, {
+				x: 4,
+				y: 3
+			}, {
+				x: 4,
+				y: 3
+			}, {
+				x: 5,
+				y: 5
+			}));
+			alert(areCrossing({
+				x: 1,
+				y: 1
+			}, {
+				x: 3,
+				y: 3
+			}, {
+				x: 1,
+				y: 1
+			}, {
+				x: 5,
+				y: 5
+			}));
+
+			alert(areCrossing({
+				x: 1,
+				y: 1
+			}, {
+				x: 3,
+				y: 3
+			}, {
+				x: 4,
+				y: 4
+			}, {
+				x: 6,
+				y: 6
+			}));
+
+			function areCrossing(p1, p2, p3, p4) {
+				var v1 = vectorMult(p4.x - p3.x, p4.y - p3.y, p1.x - p3.x, p1.y - p3.y);
+				var v2 = vectorMult(p4.x - p3.x, p4.y - p3.y, p2.x - p3.x, p2.y - p3.y);
+				var v3 = vectorMult(p2.x - p1.x, p2.y - p1.y, p3.x - p1.x, p3.y - p1.y);
+				var v4 = vectorMult(p2.x - p1.x, p2.y - p1.y, p4.x - p1.x, p4.y - p1.y);
+				if (v1 == 0 && v2 == 0 && v3 == 0 && v4 == 0) {
+					var l1 = Math.sqrt(sqr(p1.x - p2.x) + sqr(p1.y - p2.y));
+					var l2 = Math.sqrt(sqr(p3.x - p4.x) + sqr(p3.y - p4.y));
+					return sqr(p1.x + p2.x - (p3.x + p4.x)) + sqr(p1.y + p2.y - (p3.y + p4.y)) <= sqr(l1 + l2);
+				}
+				if (v1 * v2 < 0 && v3 * v4 < 0) {
+					return true;
+				}
+				return false;
+
+				function vectorMult(ax, ay, bx, by) {
+					return ax * by - bx * ay;
+				}
+
+				function sqr(x) {
+					return x * x;
+				}
+			}
+		}
 	};
 }
 
@@ -776,8 +1026,9 @@ Object.defineProperty(exports, "__esModule", {
 	value: true
 });
 //this class works with coordinates in canvas
-function Plane(loop) {
+function Plane(loop, isOuter) {
 	this.loop = loop;
+	this.isOuter = isOuter;
 	//add chain to plane, divide it to two planes(edges)
 	this.addChain = function () {};
 }
