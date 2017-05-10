@@ -47,6 +47,15 @@ function AdjacencyList() {
 		}
 	}
 	
+	this.removeEdgesWithRemovingAloneNodes = function (edges) {
+		this.removeEdges(edges);
+		for (var node in this.nodes) {
+			if (Object.keys(this.nodes[node].neighbors).length === 0) {
+				this.removeNode(node);
+			}
+		}
+	}
+	
 	this.getConnectedComponents = function () {
 		var components = [];
 		var checkedNodes = [];

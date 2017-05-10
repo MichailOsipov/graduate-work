@@ -2,7 +2,7 @@ var nodes;
 var edges;
 
 //естественная длина пружины
-var l = 200;
+var l = 100;
 //коэффициент жесткости пружины
 var k1 = 2;
 //коэффициент силы отталкивания
@@ -127,6 +127,8 @@ function addExtention(){
 		nodes[node].y+=delta*nodes[node].FY;
 		//nodes[node].x=nodes[node].FX;
 		//nodes[node].y=nodes[node].FY;
+		if (nodes[node].x < 15) nodes[node].x = 15;
+		if (nodes[node].y < 15) nodes[node].y = 15;
 	}
 }
 function firstStep(nodesText, timerId, height, width, nodesGroup, edgesGroup){
@@ -145,8 +147,8 @@ function makeOneStabilization(nodesGroup, edgesGroup){
 	drawGraph(nodesGroup, edgesGroup);
 }
 function startStabilization(timerId, nodesGroup, edgesGroup){
-	if(timerId)
-		clearInterval(timerId);
+	/*if(timerId)
+		clearInterval(timerId);*/
 	timerId = setInterval(makeOneStabilization, 150, nodesGroup, edgesGroup);
 	return timerId;
 }

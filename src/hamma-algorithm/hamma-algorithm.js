@@ -20,27 +20,41 @@ function HammaAlgorithmWorker (svgField) {
 		if (loop.path.length == 0) return; //дать координаты или что-то еще, если одна вершина
 		var planeWorker = new PlaneWorker();
 		planeWorker.initializeFromLoop(loop.path);
-		var svgGraphDrawer = new SvgGraphDrawer();
-		svgGraphDrawer.draw(planeWorker.nodes, planeWorker.edges, svgField)
+
+		var svgGraphDrawer = new SvgGraphDrawer(svgField);
+		svgGraphDrawer.draw(planeWorker.nodes, planeWorker.edges);
 		graph.removeEdges(loop.edges); //убрать также вершины ни с чем не соединенные //мб не надо
 		
-		var segments = this.findSegments(graph, loop.path);
+		var segments = this.findSegments(graph, planeWorker.addedNodes);;
+		var badSegments = [];
 		//while segments.length != 0
 		var chain;
+
 		while (segments.length != 0) {
 			this.calculateGammaFromSegments(segments, planeWorker.planes); //в поиске пути в многоугольнике - добавить реализацию использования фиктивных ребер (внешняя грань)
 			segments.sort((segment1, segment2) => {
 				return segment1.gammaCount > segment2.gammaCount ? 1 : -1;
 			});
 			
-			//удалить плохие ребра у сегмента если gammaCount = 0
-			//если у сегмента одна контактная вершина - сделать доп. проверку, или метод поиска цепи //добавить список уже уложенных вершин
+			//remove one of the contact nodes
+			if (segments[0].gammaCount === 0) {
+				badSegments.push(segments[0]);
+				segments.splice(0, 1);
+				continue;
+			}
+			
 			chain = this.findChain(segments[0], segments[0].contactNodes[0], segments[0].contactNodes[1]);
 			//сделать приоритет грани, чтобы outer грань выбиралась последней
 			//удалить цепь, собрать новые сегменты
 			//уложить цепь, получить новые грани (добавить проверку, если только одна контактная вершина)
 			//посчитать заного gamma
-			planeWorker.addChain(chain, segments[0].planesIn[0]);
+			planeWorker.addChain(chain, segments[0].planesIn[0]); //добавить сортировку граней (внутренняя - не внутренняя)
+			
+			this.removeChain(graph, chain);
+			
+			segments = this.findSegments(graph, planeWorker.addedNodes);
+			
+			svgGraphDrawer.draw(planeWorker.nodes, planeWorker.edges);
 		}
 		
 	}
@@ -179,19 +193,19 @@ function HammaAlgorithmWorker (svgField) {
 			segments[i].planesIn = [];
 			var gammaCount = 0;
 			for (var j = 0; j < planes.length; j++) {
-				if (isSegmentIn(segments[i].contactNodes, planes[i].loop)) {
+				if (isSegmentIn(segments[i].contactNodes, planes[j].loop)) {
 					gammaCount++;
-					segments[i].planesIn.push(planes[i]);
+					segments[i].planesIn.push(planes[j]);
 				}
 			}
-			segments[i].gammaCount = gammaCount;
+			segments[i].gammaCount = gammaCount; //добавить сортировку граней (внутренняя - не внутренняя)
 		}
 		
 		function isSegmentIn(contactNodes, loop) {
 			for (var i = 0; i < contactNodes.length; i++) {
 				var isNodeInLoop = false;
 				for (var j = 0; j < loop.length; j++) {
-					if (contactNodes[i] === loop[j].name) {
+					if (contactNodes[i] === loop[j]) {
 						isNodeInLoop = true;
 						break;
 					}
@@ -234,6 +248,23 @@ function HammaAlgorithmWorker (svgField) {
 			}
 			return [];
 		}
+	}
+
+	this.removeChain = function (graph, chain) {
+		var chainToDelete = [];
+		for (var i = 0; i < chain.length - 1; i++) {
+			chainToDelete.push({
+				begin: chain[i],
+				end: chain[i + 1]
+			});
+		}
+		
+		chainToDelete.push({
+			begin: chain[0],
+			end: chain[chain.length - 1]
+		});
+		
+		graph.removeEdgesWithRemovingAloneNodes(chainToDelete);
 	}
 }
 
