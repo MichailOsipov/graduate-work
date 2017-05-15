@@ -100,12 +100,18 @@ function PlaneWorker () {//добавить хранилище контактн�
 		
 		var path = findPathFromTriangles(chain, triangles, plane.loop, this.nodes);
 		
+		path = putChainToPath(path, chain);
+		
 		addPathToGraph(path, this.nodes, this.edges);
 		
 		//var newPlanes = plane.addChain(chain);
+		var helpPlaneInfo = {};
+		if (plane.isOuter) {
+			helpPlaneInfo = isPlaneLoopBroken(plane.loop, path, this.nodes);
+		}
 		var newPlanes = plane.addChain(path.map(pathItem => {
 			return pathItem.name;
-		}), path);
+		}), helpPlaneInfo);
 		
 		this.planes = this.planes.filter(item => {
 			if (item.id === plane.id) {
@@ -122,7 +128,6 @@ function PlaneWorker () {//добавить хранилище контактн�
 			var edges = getEdgesFromLoop(plane.loop, nodes)
 			var newEdges = [];
 			var loop = plane.loop.slice();
-			
 			for (var i = 0; loop.length > 3; i++) {
 				var startName = loop[i % loop.length];
 				var middle = loop[(i + 1) % loop.length];
@@ -237,8 +242,34 @@ function PlaneWorker () {//добавить хранилище контактн�
 				
 				return inside;
 			}
+		
+			/*function isNormalAnlges(point1, point2, point3) {
+				var normalAngle = 5;
+				var a = getLengthOfLineSegment(point1, point2);
+				var b = getLengthOfLineSegment(point2, point3);
+				var c = getLengthOfLineSegment(point1, point3);
+				
+				var kc = Math.acos(((a*a)+(b*b)-(c*c))/(2*a*b));
+				kc = (kc*180)/Math.PI;
+				var kb = Math.acos(((a*a)+(c*c)-(b*b))/(2*a*c));
+				kb = (kb*180)/Math.PI;
+				var ka = Math.acos(((c*c)+(b*b)-(a*a))/(2*c*b));
+				ka = (ka*180)/Math.PI;
+				
+				if (kc < normalAngle || kb < normalAngle || ka < normalAngle) {
+					return false;
+				} else {
+					return true;
+				}
+				
+				function getLengthOfLineSegment(point1, point2) {
+					var x = point1.x - point2.x;
+					var y = point1.y - point2.y;
+					return Math.sqrt(x*x + y*y);
+				}
+			}*/
 		}
-	
+		
 		function findPathFromTriangles(chain, triangles, loop, nodes) {
 			var trianglesPath = [];
 			var triangelsToSearch = triangles.map(triangleItem => ({
@@ -335,12 +366,13 @@ function PlaneWorker () {//добавить хранилище контактн�
 				var path = [];
 				path.push(getPathElem(node1, nodes));
 				path.push({
-					name: "pathElem",
+					name: "helpNode" + uniqueHelpPointId,
 					x: x,
 					y: y,
-					type: "pathElem"
+					type: "helpNode"
 				})
 				path.push(getPathElem(node2, nodes));
+				uniqueHelpPointId++;
 				
 				function getPathElem(nodeName, nodes) {
 					return {
@@ -434,7 +466,57 @@ function PlaneWorker () {//добавить хранилище контактн�
 				}
 			}
 		}
-	
+		
+		function putChainToPath(path, chain) {
+			if (chain.length === 2) {
+				return path;
+			}
+			
+			if (path.length <= chain.length) {
+				return increasePathLength(path, chain);
+			}
+			
+			return decreasePathLength(path, chain);
+			
+			function increasePathLength(path, chain) {
+				var isPathComplete = false;
+				while (!isPathComplete) {
+					for (var i = 0; i < path.length - 1; i = i + 2) {
+						if (path.length >= chain.length) {
+							isPathComplete = true;
+							break;
+						}
+						var middle = getMiddle(path[i], path[i + 1]);
+						path.splice(i + 1, 0, middle);
+					}
+				}
+				
+				for (var i = 1; i < path.length - 1; i++) {
+					path[i].name = chain[i];
+					path[i].type = "normal";
+				}
+				
+				return path;
+				
+				function getMiddle(point1, point2) {
+					return {
+						x: (point1.x + point2.x) / 2,
+						y: (point1.y + point2.y) / 2
+					};
+					
+				}
+			}
+			
+			function decreasePathLength(path, chain) {
+				var each = Math.floor((path.length - 2) / (chain.length - 2 + 1));
+				for (var i = each, j = 1; j < chain.length - 1; i = i + each, j++) {
+					path[i].name = chain[j];
+					path[i].type = "normal";
+				}
+				return path;
+			}
+		}
+		
 		function addPathToGraph(path, nodes, edges) {
 			for (var i = 0; i < path.length; i++) {
 				nodes[path[i].name] = {
@@ -451,6 +533,64 @@ function PlaneWorker () {//добавить хранилище контактн�
 				});
 			}
 			
+		}
+		
+		function isPlaneLoopBroken(loop, path, nodes) {
+			var loopEdge = {
+				p1: {x: nodes[loop[0]].x, y: nodes[loop[0]].y},
+				p2: {x: nodes["touchPoint"].x, y: nodes["touchPoint"].y}
+			};
+			
+			for (var i = 0; i < path.length - 1; i++) {
+				var p1 = {x: path[i].x, y: path[i].y};
+				var p2 = {x: path[i + 1].x, y: path[i + 1].y};
+				
+				if (areCrossingWithTouch(loopEdge.p1, loopEdge.p2, p1, p2)) {
+					return {
+						isLoopBroken: true,
+						newStartEdge: findNewStartEdge(path)
+					};
+				}
+			}
+			
+			return {
+				isLoopBroken: false,
+				newStartEdge: undefined
+			};
+			
+			function areCrossingWithTouch (p1, p2, p3, p4) {
+				var v1 = vectorMult(p4.x - p3.x, p4.y - p3.y, p1.x - p3.x, p1.y - p3.y);
+				var v2 = vectorMult(p4.x - p3.x, p4.y - p3.y, p2.x - p3.x, p2.y - p3.y);
+				var v3 = vectorMult(p2.x - p1.x, p2.y - p1.y, p3.x - p1.x, p3.y - p1.y);
+				var v4 = vectorMult(p2.x - p1.x, p2.y - p1.y, p4.x - p1.x, p4.y - p1.y);
+				if (v1 == 0 && v2 == 0 && v3 == 0 && v4 == 0) {
+					var l1 = Math.sqrt(sqr(p1.x - p2.x) + sqr(p1.y - p2.y));
+					var l2 = Math.sqrt(sqr(p3.x - p4.x) + sqr(p3.y - p4.y));
+					return sqr((p1.x + p2.x) - (p3.x + p4.x)) + sqr((p1.y + p2.y) - (p3.y + p4.y)) <= sqr(l1 + l2);
+				}
+				if ((v1 * v2) <= 0 && (v3 * v4) <= 0 ) {
+					return true;
+				}
+				return false;
+				
+				function vectorMult (ax, ay, bx, by) {
+					return ax * by - bx * ay;
+				}
+				
+				function sqr (x) {
+					return x*x;
+				}
+			}
+			
+			function findNewStartEdge(path) {
+				var newStartEdge = path[1];
+				for (var i = 1; i < path.length - 1; i++) {
+					if (path[i].x > newStartEdge.x) {
+						newStartEdge = path[i];
+					}
+				}
+				return newStartEdge.name;
+			}
 		}
 	}
 }

@@ -31,7 +31,7 @@ function HammaAlgorithmWorker (svgField) {
 		var chain;
 
 		while (segments.length != 0) {
-			this.calculateGammaFromSegments(segments, planeWorker.planes); //в поиске пути в многоугольнике - добавить реализацию использования фиктивных ребер (внешняя грань)
+			this.calculateGammaFromSegments(segments, planeWorker.planes);
 			segments.sort((segment1, segment2) => {
 				return segment1.gammaCount > segment2.gammaCount ? 1 : -1;
 			});
@@ -45,10 +45,10 @@ function HammaAlgorithmWorker (svgField) {
 			
 			chain = this.findChain(segments[0], segments[0].contactNodes[0], segments[0].contactNodes[1]);
 			//сделать приоритет грани, чтобы outer грань выбиралась последней
-			//удалить цепь, собрать новые сегменты
-			//уложить цепь, получить новые грани (добавить проверку, если только одна контактная вершина)
-			//посчитать заного gamma
-			planeWorker.addChain(chain, segments[0].planesIn[0]); //добавить сортировку граней (внутренняя - не внутренняя)
+			segments[0].planesIn.sort((plane1, plane2) => {
+				return plane1.isOuter === true ? 1: -1;
+			});
+			planeWorker.addChain(chain, segments[0].planesIn[0]);
 			
 			this.removeChain(graph, chain);
 			
