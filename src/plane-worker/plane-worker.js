@@ -485,7 +485,7 @@ function PlaneWorker () {//добавить хранилище контактн�
 						if (path.length >= chain.length) {
 							isPathComplete = true;
 							break;
-						}
+						} 
 						var middle = getMiddle(path[i], path[i + 1]);
 						path.splice(i + 1, 0, middle);
 					}
