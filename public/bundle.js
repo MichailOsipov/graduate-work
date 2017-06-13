@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 6);
+/******/ 	return __webpack_require__(__webpack_require__.s = 7);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -208,6 +208,29 @@ exports.default = AdjacencyList;
 Object.defineProperty(exports, "__esModule", {
 	value: true
 });
+var canvasSize = {
+	width: 1500,
+	height: 800
+};
+
+var canvasCenter = {
+	x: 400,
+	y: 400
+};
+
+exports.canvasSize = canvasSize;
+exports.canvasCenter = canvasCenter;
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
 function createTSpan(text, x, y) {
 	var tspan = document.createElementNS("http://www.w3.org/2000/svg", "text");
 	tspan.setAttribute("x", x);
@@ -298,7 +321,351 @@ function findBridges(nodes, textGroup) {
 exports.findBridges = findBridges;
 
 /***/ }),
-/* 2 */
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+//������������ ����� �������
+var l = 100;
+//����������� ��������� �������
+var k1 = 2;
+//����������� ���� ������������
+var k2 = 200000;
+
+var delta = 0.1;
+/*
+function clear(nodesGroup, edgesGroup){
+	nodesGroup.innerHTML="";
+	edgesGroup.innerHTML="";
+}
+function getNodesAndEdges(nodesText){
+	nodes={};
+	edges={};
+	for(var i = 0; i< nodesText.length; i++)
+	{
+		if ( nodesText[i]!="")
+		{
+			var currNode = nodesText[i].split("->");
+			nodes[currNode[0]] = {name: currNode[0]};
+			if(currNode[1])
+			{		
+				nodes[currNode[1]] = {name: currNode[1]};
+				if(!edges[currNode[0]])
+					edges[currNode[0]]={};
+				edges[currNode[0]][currNode[1]]=true;
+				
+				//����� ���� �������� � ������������������ �������
+				if(!edges[currNode[1]])
+					edges[currNode[1]]={};
+				edges[currNode[1]][currNode[0]]=true;
+			}
+		}
+	}
+}
+function randomizeNodeCoordinates(height, width){
+	for(var key in nodes){
+		nodes[key].x =Math.floor(Math.random() * (width - 0 + 1)) + 0;
+		nodes[key].y =Math.floor(Math.random() * (height - 0 + 1)) + 0;
+	}
+}
+function drawGraph(nodesGroup, edgesGroup){
+	for(var key in  nodes){
+		var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+		circle.setAttribute('cx', nodes[key].x);
+		circle.setAttribute('cy', nodes[key].y);
+		circle.setAttribute('r', 15);
+		circle.setAttribute('stroke', "black");
+		circle.setAttribute('stroke-width', 2);
+		circle.setAttribute('fill', "white");		
+		nodesGroup.appendChild(circle);
+		
+		var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+		text.setAttribute('x', nodes[key].x-2);
+		text.setAttribute('y', nodes[key].y+2);
+		text.setAttribute('fill', "black");
+		text.innerHTML= key;
+		nodesGroup.appendChild(text);
+	}
+	
+	for(var key1 in edges){		
+		for(var key2 in edges[key1]){
+			var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+			line.setAttribute('x1', nodes[key1].x);
+			line.setAttribute('y1', nodes[key1].y);
+			line.setAttribute('x2', nodes[key2].x);
+			line.setAttribute('y2', nodes[key2].y);
+			line.setAttribute('stroke', "black");
+			line.setAttribute('stroke-width', 2);
+			edgesGroup.appendChild(line);
+		}
+	}
+}
+
+function firstStep(nodesText, timerId, height, width, nodesGroup, edgesGroup){
+	if(timerId)
+		clearInterval(timerId);
+	clear(nodesGroup, edgesGroup);
+	getNodesAndEdges(nodesText);
+	randomizeNodeCoordinates(height, width);
+	drawGraph(nodesGroup, edgesGroup);
+}
+function makeOneStabilization(nodesGroup, edgesGroup){
+	calculatePowerXForEachNode();
+	calculatePowerYForEachNode();
+	addExtention();
+	clear(nodesGroup, edgesGroup);
+	drawGraph(nodesGroup, edgesGroup);
+	
+	function calculatePowerXForEachNode(){
+		for(var p in nodes){
+			var f=0;
+			for(var q in edges[p]){
+				if (edges[p][q]==undefined)continue;
+				var d = distance(p,q);
+				if (d == 0) continue;
+				f+=k1 * (d - l) * (nodes[q].x - nodes[p].x) / d;
+			}
+			var g=0;
+			for(var q in nodes){
+				//if(edges[p][q]!=undefined||q==p)continue;
+				if(q==p)continue;
+				var d = distance(p,q);
+				if (d == 0) continue;
+				g+=k2 * (nodes[p].x - nodes[q].x) / (d * d)  / d;
+			}
+			nodes[p].FX=f+g;
+		}
+		
+		function distance(node1, node2){
+			var x = nodes[node1].x-nodes[node2].x;
+			var y = nodes[node1].y-nodes[node2].y;
+			return Math.sqrt(x*x + y*y);
+		}
+	}
+	function calculatePowerYForEachNode(){
+		for(var p in nodes){
+			var f=0;
+			for(var q in edges[p]){
+				if (edges[p][q]==undefined)continue;
+				var d = distance(p,q);
+				if (d == 0) continue;
+				f+=k1 * (d - l) * (nodes[q].y - nodes[p].y) / d;
+			}
+			var g=0;
+			for(var q in nodes){
+				//if(edges[p][q]!=undefined||q==p)continue;
+				if(q==p)continue;
+				var d = distance(p,q);
+				if (d == 0) continue;
+				g+=k2 * (nodes[p].y - nodes[q].y) / (d * d)   / d;
+			}
+			nodes[p].FY= f + g;
+		}
+	}
+	function addExtention(){
+		for(var node in nodes){
+			nodes[node].x+=delta*nodes[node].FX;
+			nodes[node].y+=delta*nodes[node].FY;
+			//nodes[node].x=nodes[node].FX;
+			//nodes[node].y=nodes[node].FY;
+			if (nodes[node].x < 15) nodes[node].x = 15;
+			if (nodes[node].y < 15) nodes[node].y = 15;
+		}
+	}
+}
+function startStabilization(timerId, nodesGroup, edgesGroup){
+	timerId = setInterval(makeOneStabilization, 150, nodesGroup, edgesGroup);
+	return timerId;
+}
+export {firstStep, makeOneStabilization, startStabilization};
+*/
+function SpringEmbedderWorker(svgField) {
+	this.nodes = {};
+	this.edges = {};
+	this.timers = [];
+	this.svgField = svgField;
+
+	this.initializeField = function () {
+		this.svgField.innerHTML = "";
+
+		this.nodesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+		this.nodesGroup.setAttribute('id', 'nodes');
+
+		this.edgesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+		this.edgesGroup.setAttribute('id', 'edges');
+
+		this.svgField.appendChild(this.edgesGroup);
+		this.svgField.appendChild(this.nodesGroup);
+	};
+
+	this.getNodesAndEdges = function (nodesText) {
+		this.nodes = {};
+		this.edges = {};
+		for (var i = 0; i < nodesText.length; i++) {
+			if (nodesText[i] !== "") {
+				var currNode = nodesText[i].split("->");
+				this.nodes[currNode[0]] = { name: currNode[0] };
+				if (currNode[1]) {
+					this.nodes[currNode[1]] = { name: currNode[1] };
+					if (!this.edges[currNode[0]]) this.edges[currNode[0]] = {};
+					this.edges[currNode[0]][currNode[1]] = true;
+
+					//����� ���� �������� � ������������������ �������
+					if (!this.edges[currNode[1]]) this.edges[currNode[1]] = {};
+					this.edges[currNode[1]][currNode[0]] = true;
+				}
+			}
+		}
+	};
+
+	this.randomizeNodeCoordinates = function (height, width) {
+		for (var key in this.nodes) {
+			this.nodes[key].x = Math.floor(Math.random() * (width - 0 + 1)) + 0;
+			this.nodes[key].y = Math.floor(Math.random() * (height - 0 + 1)) + 0;
+		}
+	};
+
+	this.drawGraph = function () {
+		for (var key in this.nodes) {
+			var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+			circle.setAttribute('cx', this.nodes[key].x);
+			circle.setAttribute('cy', this.nodes[key].y);
+			circle.setAttribute('r', 15);
+			circle.setAttribute('stroke', "black");
+			circle.setAttribute('stroke-width', 2);
+			circle.setAttribute('fill', "white");
+			this.nodesGroup.appendChild(circle);
+
+			var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+			text.setAttribute('x', this.nodes[key].x - 2);
+			text.setAttribute('y', this.nodes[key].y + 2);
+			text.setAttribute('fill', "black");
+			text.innerHTML = key;
+			this.nodesGroup.appendChild(text);
+		}
+
+		for (var key1 in this.edges) {
+			for (var key2 in this.edges[key1]) {
+				var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+				line.setAttribute('x1', this.nodes[key1].x);
+				line.setAttribute('y1', this.nodes[key1].y);
+				line.setAttribute('x2', this.nodes[key2].x);
+				line.setAttribute('y2', this.nodes[key2].y);
+				line.setAttribute('stroke', "black");
+				line.setAttribute('stroke-width', 2);
+				this.edgesGroup.appendChild(line);
+			}
+		}
+	};
+
+	this.clearTimers = function () {
+		for (var i = 0; i < this.timers.length; i++) {
+			clearInterval(this.timers[i]);
+		}
+	};
+
+	this.firstStep = function (nodesText, height, width) {
+		this.clearTimers();
+		this.initializeField();
+		this.getNodesAndEdges(nodesText);
+		this.randomizeNodeCoordinates(height, width);
+		this.drawGraph();
+	};
+
+	this.oneIteration = function () {
+		calculatePowerXForEachNode.call(this);
+		calculatePowerYForEachNode.call(this);
+		addExtention.call(this);
+
+		function calculatePowerXForEachNode() {
+			for (var p in this.nodes) {
+				var f = 0;
+				for (var q in this.edges[p]) {
+					if (this.edges[p][q] === undefined) ontinue;
+					var d = distance.call(this, p, q);
+					if (d == 0) continue;
+					f += k1 * (d - l) * (this.nodes[q].x - this.nodes[p].x) / d;
+				}
+				var g = 0;
+				for (var q in this.nodes) {
+					//if(this.edges[p][q]!=undefined||q==p)continue;
+					if (q === p) continue;
+					var d = distance.call(this, p, q);
+					if (d === 0) continue;
+					g += k2 * (this.nodes[p].x - this.nodes[q].x) / (d * d) / d;
+				}
+				this.nodes[p].FX = f + g;
+			}
+
+			function distance(node1, node2) {
+				var x = this.nodes[node1].x - this.nodes[node2].x;
+				var y = this.nodes[node1].y - this.nodes[node2].y;
+				return Math.sqrt(x * x + y * y);
+			}
+		}
+		function calculatePowerYForEachNode() {
+			for (var p in this.nodes) {
+				var f = 0;
+				for (var q in this.edges[p]) {
+					if (this.edges[p][q] === undefined) continue;
+					var d = distance.call(this, p, q);
+					if (d === 0) continue;
+					f += k1 * (d - l) * (this.nodes[q].y - this.nodes[p].y) / d;
+				}
+				var g = 0;
+				for (var q in this.nodes) {
+					//if(this.edges[p][q]!=undefined||q==p)continue;
+					if (q === p) continue;
+					var d = distance.call(this, p, q);
+					if (d === 0) continue;
+					g += k2 * (this.nodes[p].y - this.nodes[q].y) / (d * d) / d;
+				}
+				this.nodes[p].FY = f + g;
+			}
+
+			function distance(node1, node2) {
+				var x = this.nodes[node1].x - this.nodes[node2].x;
+				var y = this.nodes[node1].y - this.nodes[node2].y;
+				return Math.sqrt(x * x + y * y);
+			}
+		}
+		function addExtention() {
+			for (var node in this.nodes) {
+				this.nodes[node].x += delta * this.nodes[node].FX;
+				this.nodes[node].y += delta * this.nodes[node].FY;
+				//nodes[node].x=nodes[node].FX;
+				//nodes[node].y=nodes[node].FY;
+				if (this.nodes[node].x < 15) this.nodes[node].x = 15;
+				if (this.nodes[node].y < 15) this.nodes[node].y = 15;
+			}
+		}
+	};
+
+	this.makeOneStabilization = function () {
+		this.oneIteration();
+		this.initializeField();
+		this.drawGraph();
+	};
+
+	this.startStabilization = function () {
+		var _this = this;
+
+		var timerId = setInterval(function () {
+			_this.makeOneStabilization.call(_this);
+		}, 150);
+		this.timers.push(timerId);
+	};
+}
+
+exports.default = SpringEmbedderWorker;
+
+/***/ }),
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -308,7 +675,7 @@ Object.defineProperty(exports, "__esModule", {
 	value: true
 });
 
-var _svgCatmullRomSpline = __webpack_require__(9);
+var _svgCatmullRomSpline = __webpack_require__(10);
 
 var _svgCatmullRomSpline2 = _interopRequireDefault(_svgCatmullRomSpline);
 
@@ -398,7 +765,7 @@ function SvgGraphDrawer(svgField) {
 exports.default = SvgGraphDrawer;
 
 /***/ }),
-/* 3 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -412,15 +779,19 @@ var _adjacencyList = __webpack_require__(0);
 
 var _adjacencyList2 = _interopRequireDefault(_adjacencyList);
 
-var _findBridges = __webpack_require__(1);
+var _findBridges = __webpack_require__(2);
 
-var _planeWorker = __webpack_require__(7);
+var _planeWorker = __webpack_require__(8);
 
 var _planeWorker2 = _interopRequireDefault(_planeWorker);
 
-var _svgGraphDrawer = __webpack_require__(2);
+var _svgGraphDrawer = __webpack_require__(4);
 
 var _svgGraphDrawer2 = _interopRequireDefault(_svgGraphDrawer);
+
+var _springEmbedder = __webpack_require__(3);
+
+var _springEmbedder2 = _interopRequireDefault(_springEmbedder);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -429,16 +800,22 @@ function HammaAlgorithmWorker(svgField) {
 	this.makePlanarity = function (graph) {
 		var bridges = (0, _findBridges.findBridges)(graph.nodes);
 		graph.removeEdges(bridges);
+		var planarComponents = [];
 		var components = graph.getConnectedComponents();
 		for (var i = 0; i < components.length; i++) {
-			this.planarizeGraph(components[i]);
+			planarComponents.push(this.planarizeGraph(components[i]));
 		}
+		return planarComponents;
 	};
 
 	//graph without bridges
 	this.planarizeGraph = function (graph) {
 		var loop = this.findLoop(graph);
-		if (loop.path.length == 0) return; //дать координаты или что-то еще, если одна вершина
+		if (loop.path.length == 0) return {
+			planaredGraph: new _planeWorker2.default(loop),
+			badSegments: [],
+			graph: graph
+		};
 		var planeWorker = new _planeWorker2.default();
 		planeWorker.initializeFromLoop(loop.path);
 
@@ -465,18 +842,41 @@ function HammaAlgorithmWorker(svgField) {
 			}
 
 			chain = this.findChain(segments[0], segments[0].contactNodes[0], segments[0].contactNodes[1]);
-			//сделать приоритет грани, чтобы outer грань выбиралась последней
-			segments[0].planesIn.sort(function (plane1, plane2) {
-				return plane1.isOuter === true ? 1 : -1;
-			});
 			planeWorker.addChain(chain, segments[0].planesIn[0]);
-
 			this.removeChain(graph, chain);
-
 			segments = this.findSegments(graph, planeWorker.addedNodes);
-
 			svgGraphDrawer.draw(planeWorker.nodes, planeWorker.edges);
 		}
+		return {
+			planaredGraph: planeWorker,
+			badSegments: badSegments,
+			graph: graph
+		};
+		/*var springEmbedderEdges = this.convertEdgesForSpringEmbedder(planeWorker.edges);
+  
+  var springEmbedderWorker = new SpringEmbedderWorker(svgField);
+  springEmbedderWorker.nodes = planeWorker.nodes;
+  springEmbedderWorker.edges = springEmbedderEdges;*/
+
+		//springEmbedderWorker.oneIteration();
+		//for (var i = 0; i < 20; i++) {
+		//while (true) {
+		/*springEmbedderWorker.makeOneStabilization();*/
+		/*setInterval(() => {
+  	springEmbedderWorker.oneIteration();
+  	svgGraphDrawer.draw(planeWorker.nodes, planeWorker.edges);
+  }, 150);*/
+		//}
+		/*var badChain;
+  //put bad segments as is
+  while (badSegments.length !== 0) {
+  	badChain = this.findChain(badSegments[0], badSegments[0].contactNodes[0], badSegments[0].contactNodes[1]);
+  	
+  	planeWorker.addBadChain(badChain);
+  	this.removeChain(graph, badChain);
+  	badSegments = this.findSegments(graph, planeWorker.addedNodes);
+  	svgGraphDrawer.draw(planeWorker.nodes, planeWorker.edges);
+  }*/
 	};
 
 	//awful algorithm, works in n^n time
@@ -490,7 +890,8 @@ function HammaAlgorithmWorker(svgField) {
 
 			searchLoopInNeighbors(path.slice(), key, graph);
 		}
-
+		/*!!!
+  pathResult = ["1", "2", "3", "4", "5", "6", "7"];*/
 		return transformPathResultToLoopAndEdges(pathResult);
 
 		function searchLoopInNeighbors(path, nodeName, graph) {
@@ -685,203 +1086,94 @@ function HammaAlgorithmWorker(svgField) {
 
 		graph.removeEdgesWithRemovingAloneNodes(chainToDelete);
 	};
+
+	this.useSpringEmbedder = function (planaredGraph) {
+		var springEmbedderEdges = this.convertEdgesForSpringEmbedder(planaredGraph.edges);
+		var springEmbedderWorker = new _springEmbedder2.default(svgField);
+		springEmbedderWorker.nodes = planaredGraph.nodes;
+		springEmbedderWorker.edges = springEmbedderEdges;
+
+		var svgGraphDrawer = new _svgGraphDrawer2.default(svgField);
+
+		var timer = setInterval(function () {
+			springEmbedderWorker.oneIteration();
+			svgGraphDrawer.draw(planaredGraph.nodes, planaredGraph.edges);
+		}, 150);
+		return timer;
+	};
+
+	this.convertEdgesForSpringEmbedder = function (edges) {
+		var springEmbedderEdges = {};
+		for (var i = 0; i < edges.length; i++) {
+			if (!springEmbedderEdges[edges[i].begin]) {
+				springEmbedderEdges[edges[i].begin] = {};
+			}
+			springEmbedderEdges[edges[i].begin][edges[i].end] = true;
+
+			if (!springEmbedderEdges[edges[i].end]) {
+				springEmbedderEdges[edges[i].end] = {};
+			}
+			springEmbedderEdges[edges[i].end][edges[i].begin] = true;
+		}
+
+		return springEmbedderEdges;
+	};
+
+	this.addNonPlanarEdges = function (component) {
+		var planaredGraph = component.planaredGraph;
+		var badSegments = component.badSegments;
+		var graph = component.graph;
+
+		var badChain;
+		var svgGraphDrawer = new _svgGraphDrawer2.default(svgField);
+		while (badSegments.length !== 0) {
+			badChain = this.findChain(badSegments[0], badSegments[0].contactNodes[0], badSegments[0].contactNodes[1]);
+
+			planaredGraph.addBadChain(badChain);
+			this.removeChain(graph, badChain);
+			badSegments = this.findSegments(graph, planaredGraph.addedNodes);
+			svgGraphDrawer.draw(planaredGraph.nodes, planaredGraph.edges);
+		}
+	};
 }
 
 exports.default = HammaAlgorithmWorker;
 
 /***/ }),
-/* 4 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-var nodes;
-var edges;
-
-//������������ ����� �������
-var l = 100;
-//����������� ��������� �������
-var k1 = 2;
-//����������� ���� ������������
-var k2 = 200000;
-
-var delta = 0.1;
-
-function clear(nodesGroup, edgesGroup) {
-	nodesGroup.innerHTML = "";
-	edgesGroup.innerHTML = "";
-}
-function getNodesAndEdges(nodesText) {
-	nodes = {};
-	edges = {};
-	for (var i = 0; i < nodesText.length; i++) {
-		if (nodesText[i] != "") {
-			var currNode = nodesText[i].split("->");
-			nodes[currNode[0]] = { name: currNode[0] };
-			if (currNode[1]) {
-				nodes[currNode[1]] = { name: currNode[1] };
-				if (!edges[currNode[0]]) edges[currNode[0]] = {};
-				edges[currNode[0]][currNode[1]] = true;
-
-				//����� ���� �������� � ������������������ �������
-				if (!edges[currNode[1]]) edges[currNode[1]] = {};
-				edges[currNode[1]][currNode[0]] = true;
-			}
-		}
-	}
-}
-function randomizeNodeCoordinates(height, width) {
-	for (var key in nodes) {
-		nodes[key].x = Math.floor(Math.random() * (width - 0 + 1)) + 0;
-		nodes[key].y = Math.floor(Math.random() * (height - 0 + 1)) + 0;
-	}
-}
-function drawGraph(nodesGroup, edgesGroup) {
-	for (var key in nodes) {
-		var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-		circle.setAttribute('cx', nodes[key].x);
-		circle.setAttribute('cy', nodes[key].y);
-		circle.setAttribute('r', 15);
-		circle.setAttribute('stroke', "black");
-		circle.setAttribute('stroke-width', 2);
-		circle.setAttribute('fill', "white");
-		nodesGroup.appendChild(circle);
-
-		var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-		text.setAttribute('x', nodes[key].x - 2);
-		text.setAttribute('y', nodes[key].y + 2);
-		text.setAttribute('fill', "black");
-		text.innerHTML = key;
-		nodesGroup.appendChild(text);
-	}
-
-	for (var key1 in edges) {
-		for (var key2 in edges[key1]) {
-			var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			line.setAttribute('x1', nodes[key1].x);
-			line.setAttribute('y1', nodes[key1].y);
-			line.setAttribute('x2', nodes[key2].x);
-			line.setAttribute('y2', nodes[key2].y);
-			line.setAttribute('stroke', "black");
-			line.setAttribute('stroke-width', 2);
-			edgesGroup.appendChild(line);
-		}
-	}
-}
-function distance(node1, node2) {
-	var x = nodes[node1].x - nodes[node2].x;
-	var y = nodes[node1].y - nodes[node2].y;
-	return Math.sqrt(x * x + y * y);
-}
-function calculatePowerXForEachNode() {
-	for (var p in nodes) {
-		var f = 0;
-		for (var q in edges[p]) {
-			if (edges[p][q] == undefined) continue;
-			var d = distance(p, q);
-			if (d == 0) continue;
-			f += k1 * (d - l) * (nodes[q].x - nodes[p].x) / d;
-		}
-		var g = 0;
-		for (var q in nodes) {
-			//if(edges[p][q]!=undefined||q==p)continue;
-			if (q == p) continue;
-			var d = distance(p, q);
-			if (d == 0) continue;
-			g += k2 * (nodes[p].x - nodes[q].x) / (d * d) / d;
-		}
-		nodes[p].FX = f + g;
-	}
-}
-function calculatePowerYForEachNode() {
-	for (var p in nodes) {
-		var f = 0;
-		for (var q in edges[p]) {
-			if (edges[p][q] == undefined) continue;
-			var d = distance(p, q);
-			if (d == 0) continue;
-			f += k1 * (d - l) * (nodes[q].y - nodes[p].y) / d;
-		}
-		var g = 0;
-		for (var q in nodes) {
-			//if(edges[p][q]!=undefined||q==p)continue;
-			if (q == p) continue;
-			var d = distance(p, q);
-			if (d == 0) continue;
-			g += k2 * (nodes[p].y - nodes[q].y) / (d * d) / d;
-		}
-		nodes[p].FY = f + g;
-	}
-}
-function addExtention() {
-	for (var node in nodes) {
-		nodes[node].x += delta * nodes[node].FX;
-		nodes[node].y += delta * nodes[node].FY;
-		//nodes[node].x=nodes[node].FX;
-		//nodes[node].y=nodes[node].FY;
-		if (nodes[node].x < 15) nodes[node].x = 15;
-		if (nodes[node].y < 15) nodes[node].y = 15;
-	}
-}
-function firstStep(nodesText, timerId, height, width, nodesGroup, edgesGroup) {
-	if (timerId) clearInterval(timerId);
-	clear(nodesGroup, edgesGroup);
-	getNodesAndEdges(nodesText);
-	randomizeNodeCoordinates(height, width);
-	drawGraph(nodesGroup, edgesGroup);
-}
-function makeOneStabilization(nodesGroup, edgesGroup) {
-	calculatePowerXForEachNode();
-	calculatePowerYForEachNode();
-	addExtention();
-	clear(nodesGroup, edgesGroup);
-	drawGraph(nodesGroup, edgesGroup);
-}
-function startStabilization(timerId, nodesGroup, edgesGroup) {
-	/*if(timerId)
- 	clearInterval(timerId);*/
-	timerId = setInterval(makeOneStabilization, 150, nodesGroup, edgesGroup);
-	return timerId;
-}
-exports.firstStep = firstStep;
-exports.makeOneStabilization = makeOneStabilization;
-exports.startStabilization = startStabilization;
-
-/***/ }),
-/* 5 */
+/* 6 */
 /***/ (function(module, exports) {
 
 // removed by extract-text-webpack-plugin
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var _springEmbedder = __webpack_require__(4);
+var _springEmbedder = __webpack_require__(3);
+
+var _springEmbedder2 = _interopRequireDefault(_springEmbedder);
 
 var _adjacencyList = __webpack_require__(0);
 
 var _adjacencyList2 = _interopRequireDefault(_adjacencyList);
 
-var _findBridges = __webpack_require__(1);
+var _findBridges = __webpack_require__(2);
 
-var _hammaAlgorithm = __webpack_require__(3);
+var _hammaAlgorithm = __webpack_require__(5);
 
 var _hammaAlgorithm2 = _interopRequireDefault(_hammaAlgorithm);
 
-__webpack_require__(5);
+__webpack_require__(6);
+
+var _canvasParameters = __webpack_require__(1);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var height = 800;
-var width = 1500;
+var height = _canvasParameters.canvasSize.height;
+var width = _canvasParameters.canvasSize.width;
 
 var timerId;
 
@@ -916,48 +1208,69 @@ k->l;`;*/
 3->4;3->5;
 4->5;*/
 document.getElementById("nodes-input").value = '1->2;1->3;1->4;1->4;1->5;\n2->3;2->4;2->5;\n3->4;3->5;\n4->5;';
-var nodesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-nodesGroup.setAttribute('id', 'nodes');
 
-var edgesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-edgesGroup.setAttribute('id', 'edges');
+//spring-embedder
+var springEmbedderWorker = new _springEmbedder2.default(drawField);
 
-var textGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-
-drawField.appendChild(edgesGroup);
-drawField.appendChild(nodesGroup);
-drawField.appendChild(textGroup);
-
-var toDraw = document.getElementById("to-draw");
-toDraw.addEventListener('click', function () {
+var randomizeNodesAndDraw = document.getElementById("randomize-nodes-and-draw");
+randomizeNodesAndDraw.addEventListener('click', function () {
 	var nodesText = document.getElementById("nodes-input").value.replace(/ |\n/g, '').split(';');
-	(0, _springEmbedder.firstStep)(nodesText, timerId, height, width, nodesGroup, edgesGroup);
+	springEmbedderWorker.firstStep(nodesText, height, width);
 });
 
 var calculateOffset = document.getElementById("calculate-offset");
 calculateOffset.addEventListener('click', function () {
-	(0, _springEmbedder.makeOneStabilization)(nodesGroup, edgesGroup);
+	springEmbedderWorker.makeOneStabilization();
 });
 
 var startStab = document.getElementById("start-stabilization");
 startStab.addEventListener('click', function () {
-	timerId = (0, _springEmbedder.startStabilization)(timerId, nodesGroup, edgesGroup);
+	springEmbedderWorker.startStabilization();
 });
 
-var planarityFirstStep = document.getElementById("find-bridges");
+//hamma-algorithm
+var hammaAlgorithmWorker = new _hammaAlgorithm2.default(drawField);
 
+var planarityFirstStep = document.getElementById("planarity");
+var planarComponents = [];
 planarityFirstStep.addEventListener('click', function () {
+	springEmbedderWorker.clearTimers();
 	var nodesText = document.getElementById("nodes-input").value.replace(/ |\n/g, '').split(';');
 
 	var initGraph = new _adjacencyList2.default();
 	initGraph.initializeFromText(nodesText);
 
-	var hammaAlgorithmWorker = new _hammaAlgorithm2.default(drawField);
-	hammaAlgorithmWorker.makePlanarity(initGraph);
+	planarComponents = hammaAlgorithmWorker.makePlanarity(initGraph);
+});
+
+var useSpringEmbedderToPlanarGraph = document.getElementById("planarity-to-spring");
+var timers = [];
+useSpringEmbedderToPlanarGraph.addEventListener('click', function () {
+	if (timers.length !== 0) {
+		stopTimers(timers);
+		timers = [];
+		return;
+	}
+	for (var i = 0; i < planarComponents.length; i++) {
+		var currTimer = hammaAlgorithmWorker.useSpringEmbedder(planarComponents[i].planaredGraph);
+		timers.push(currTimer);
+	}
+	function stopTimers(timers) {
+		for (var i = 0; i < timers.length; i++) {
+			clearInterval(timers[i]);
+		}
+	}
+});
+
+var addNonPlanarEdges = document.getElementById("add-non-planar-edges");
+addNonPlanarEdges.addEventListener('click', function () {
+	for (var i = 0; i < planarComponents.length; i++) {
+		hammaAlgorithmWorker.addNonPlanarEdges(planarComponents[i]);
+	}
 });
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -967,22 +1280,29 @@ Object.defineProperty(exports, "__esModule", {
 	value: true
 });
 
-var _plane = __webpack_require__(8);
+var _plane = __webpack_require__(9);
 
 var _plane2 = _interopRequireDefault(_plane);
 
-var _svgGraphDrawer = __webpack_require__(2);
+var _svgGraphDrawer = __webpack_require__(4);
 
 var _svgGraphDrawer2 = _interopRequireDefault(_svgGraphDrawer);
 
+var _canvasParameters = __webpack_require__(1);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var canvasSize = {
-	width: 800,
-	height: 800
-};
-
 var nodeRadius = 15;
+
+/*const canvasSize = {
+	width: 1800,
+	height: 1800
+}
+const center = {
+	x: 900,
+	y: 900
+};*/
+
 
 var canvasCorners = {
 	topLeft: {
@@ -991,25 +1311,20 @@ var canvasCorners = {
 		type: "fictive"
 	},
 	topRight: {
-		x: canvasSize.width - nodeRadius,
+		x: _canvasParameters.canvasSize.width - nodeRadius,
 		y: nodeRadius,
 		type: "fictive"
 	},
 	bottomLeft: {
 		x: nodeRadius,
-		y: canvasSize.height - nodeRadius,
+		y: _canvasParameters.canvasSize.height - nodeRadius,
 		type: "fictive"
 	},
 	bottomRight: {
-		x: canvasSize.width - nodeRadius,
-		y: canvasSize.height - nodeRadius,
+		x: _canvasParameters.canvasSize.width - nodeRadius,
+		y: _canvasParameters.canvasSize.height - nodeRadius,
 		type: "fictive"
 	}
-};
-
-var center = {
-	x: 400,
-	y: 400
 };
 
 var uniqueHelpPointId = 1;
@@ -1028,8 +1343,8 @@ function PlaneWorker() {
 
 		for (var i = 0; i < loop.length; i++) {
 			this.nodes[loop[i]] = {
-				x: center.x + radius * Math.cos(i * angle),
-				y: center.y + radius * Math.sin(i * angle),
+				x: _canvasParameters.canvasCenter.x + radius * Math.cos(i * angle),
+				y: _canvasParameters.canvasCenter.y + radius * Math.sin(i * angle),
 				type: "normal"
 			};
 		}
@@ -1046,14 +1361,12 @@ function PlaneWorker() {
 			end: loop[loop.length - 1]
 		});
 
-		//понять, надо ли добавить фиктивные ребра
-
 		this.nodes["topLeft"] = canvasCorners.topLeft;
 		this.nodes["topRight"] = canvasCorners.topRight;
 		this.nodes["bottomLeft"] = canvasCorners.bottomLeft;
 		this.nodes["bottomRight"] = canvasCorners.bottomRight;
 		this.nodes["touchPoint"] = {
-			x: canvasSize.width - nodeRadius,
+			x: _canvasParameters.canvasSize.width - nodeRadius,
 			y: this.nodes[loop[0]].y,
 			type: "fictive"
 		};
@@ -1081,7 +1394,8 @@ function PlaneWorker() {
 
 		addPathToGraph(path, this.nodes, this.edges);
 
-		//var newPlanes = plane.addChain(chain);
+		addChainToAddedNodes.call(this, chain);
+
 		var helpPlaneInfo = {};
 		if (plane.isOuter) {
 			helpPlaneInfo = isPlaneLoopBroken(plane.loop, path, this.nodes);
@@ -1354,6 +1668,7 @@ function PlaneWorker() {
 				});
 				path.push(getPathElem(node2, nodes));
 				uniqueHelpPointId++;
+				return path;
 
 				function getPathElem(nodeName, nodes) {
 					return {
@@ -1514,6 +1829,10 @@ function PlaneWorker() {
 			}
 		}
 
+		function addChainToAddedNodes(chain) {
+			this.addedNodes = this.addedNodes.concat(chain);
+		}
+
 		function isPlaneLoopBroken(loop, path, nodes) {
 			var loopEdge = {
 				p1: { x: nodes[loop[0]].x, y: nodes[loop[0]].y },
@@ -1572,12 +1891,46 @@ function PlaneWorker() {
 			}
 		}
 	};
+
+	this.addBadChain = function (chain) {
+		var X = this.nodes[chain[0]].x - this.nodes[chain[chain.length - 1]].x;
+		var Y = this.nodes[chain[0]].y - this.nodes[chain[chain.length - 1]].y;
+		var deltaX = X / (chain.length - 1);
+		var deltaY = Y / (chain.length - 1);
+
+		var initX = this.nodes[chain[0]].x;
+		var initY = this.nodes[chain[0]].y;
+
+		for (var i = 1; i < chain.length - 1; i++) {
+			this.nodes[chain[i]] = {
+				type: "bad-normal",
+				x: initX + deltaX,
+				y: initY + deltaY
+			};
+			initX += deltaX;
+			initY += deltaY;
+		}
+
+		for (var i = 0; i < chain.length - 1; i++) {
+			this.edges.push({
+				begin: chain[i],
+				end: chain[i + 1],
+				isBad: true
+			});
+		}
+
+		addChainToAddedNodes.call(this, chain);
+
+		function addChainToAddedNodes(chain) {
+			this.addedNodes = this.addedNodes.concat(chain);
+		}
+	};
 }
 
 exports.default = PlaneWorker;
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1605,11 +1958,14 @@ function Plane(loop, isOuter, id) {
 	this.addSimpleChain = function (chain) {
 		var loop1 = [];
 		var loop2 = [];
-
+		var chainToWorkWith = chain.slice();
 		var i;
 		for (i = 0; i < this.loop.length; i++) {
 			loop1.push(this.loop[i]);
-			if (this.loop[i] === chain[0] || this.loop[i] === chain[chain.length - 1]) {
+			if (this.loop[i] === chainToWorkWith[0] || this.loop[i] === chainToWorkWith[chainToWorkWith.length - 1]) {
+				if (this.loop[i] === chainToWorkWith[chainToWorkWith.length - 1]) {
+					chainToWorkWith.reverse();
+				}
 				loop2.push(this.loop[i]);
 				i++;
 				break;
@@ -1618,17 +1974,17 @@ function Plane(loop, isOuter, id) {
 
 		for (i; i < this.loop.length; i++) {
 			loop2.push(this.loop[i]);
-			if (this.loop[i] === chain[0] || this.loop[i] === chain[chain.length - 1]) {
+			if (this.loop[i] === chainToWorkWith[0] || this.loop[i] === chainToWorkWith[chainToWorkWith.length - 1]) {
 				break;
 			}
 		}
 
-		for (var j = 1; j < chain.length - 1; j++) {
-			loop1.push(chain[j]);
+		for (var j = 1; j < chainToWorkWith.length - 1; j++) {
+			loop1.push(chainToWorkWith[j]);
 		}
 
-		for (var j = chain.length - 2; j > 0; j--) {
-			loop2.push(chain[j]);
+		for (var j = chainToWorkWith.length - 2; j > 0; j--) {
+			loop2.push(chainToWorkWith[j]);
 		}
 
 		loop1.push(this.loop[i]);
@@ -1644,38 +2000,42 @@ function Plane(loop, isOuter, id) {
 	this.addChainInOuterLoop = function (chain, newStartEdge) {
 		var loop1 = [];
 		var loop2 = [];
+		var chainToWorkWith = chain.slice();
 
 		var i;
 		for (i = 0; i < this.loop.length; i++) {
 			loop1.push(this.loop[i]);
-			if (this.loop[i] === chain[0] || this.loop[i] === chain[chain.length - 1]) {
+			if (this.loop[i] === chainToWorkWith[0] || this.loop[i] === chainToWorkWith[chainToWorkWith.length - 1]) {
+				if (this.loop[i] === chainToWorkWith[chainToWorkWith.length - 1]) {
+					chainToWorkWith.reverse();
+				}
 				break;
 			}
 		}
-		for (var j = 1; j < chain.length - 1; j++) {
-			loop2.unshift(chain[j]);
-			if (chain[j] === newStartEdge) break;
+		for (var j = 1; j < chainToWorkWith.length - 1; j++) {
+			loop2.unshift(chainToWorkWith[j]);
+			if (chainToWorkWith[j] === newStartEdge) break;
 		}
 
 		loop2.push(this.loop[i]);
 		i++;
 
-		for (var j = 1; j < chain.length - 1; j++) {
-			loop1.push(chain[j]);
+		for (var j = 1; j < chainToWorkWith.length - 1; j++) {
+			loop1.push(chainToWorkWith[j]);
 		}
 
 		for (i; i < this.loop.length; i++) {
 			loop2.push(this.loop[i]);
-			if (this.loop[i] === chain[0] || this.loop[i] === chain[chain.length - 1]) {
+			if (this.loop[i] === chainToWorkWith[0] || this.loop[i] === chainToWorkWith[chainToWorkWith.length - 1]) {
 				loop1.push(this.loop[i]);
 				i++;
 				break;
 			}
 		}
 
-		for (var j = chain.length - 2; j > 0; j--) {
-			loop2.push(chain[j]);
-			if (chain[j] === newStartEdge) {
+		for (var j = chainToWorkWith.length - 2; j > 0; j--) {
+			loop2.push(chainToWorkWith[j]);
+			if (chainToWorkWith[j] === newStartEdge) {
 				break;
 			}
 		}
@@ -1706,13 +2066,13 @@ function Plane(loop, isOuter, id) {
 exports.default = Plane;
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var simplify = __webpack_require__(10);
+var simplify = __webpack_require__(11);
 
 function toPoints(points, tolerance, highestQuality) {
     var mappedToObjXY = mapPointsArray2ObjectXY(points);
@@ -1803,7 +2163,7 @@ module.exports = {
 };
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_RESULT__;/*

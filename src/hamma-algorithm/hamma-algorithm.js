@@ -2,22 +2,29 @@ import AdjacencyList from 'adjacency-list';
 import {findBridges} from 'find-bridges';
 import PlaneWorker from 'plane-worker';
 import SvgGraphDrawer from 'svg-graph-drawer';
+import SpringEmbedderWorker from 'spring-embedder';
 
 function HammaAlgorithmWorker (svgField) {
 	this.svgField = svgField;
 	this.makePlanarity = function (graph) {
 		var bridges = findBridges(graph.nodes);
 		graph.removeEdges(bridges);
+		var planarComponents = [];
 		var components = graph.getConnectedComponents();
 		for (var i = 0; i < components.length; i++) {
-			this.planarizeGraph(components[i]);
+			planarComponents.push(this.planarizeGraph(components[i]));
 		}
+		return planarComponents;
 	}
 	
 	//graph without bridges
 	this.planarizeGraph = function (graph) {
 		var loop = this.findLoop(graph);
-		if (loop.path.length == 0) return; //дать координаты или что-то еще, если одна вершина
+		if (loop.path.length == 0) return {
+			planaredGraph: new PlaneWorker(loop),
+			badSegments: [],
+			graph: graph
+		};
 		var planeWorker = new PlaneWorker();
 		planeWorker.initializeFromLoop(loop.path);
 
@@ -44,19 +51,41 @@ function HammaAlgorithmWorker (svgField) {
 			}
 			
 			chain = this.findChain(segments[0], segments[0].contactNodes[0], segments[0].contactNodes[1]);
-			//сделать приоритет грани, чтобы outer грань выбиралась последней
-			segments[0].planesIn.sort((plane1, plane2) => {
-				return plane1.isOuter === true ? 1: -1;
-			});
 			planeWorker.addChain(chain, segments[0].planesIn[0]);
-			
 			this.removeChain(graph, chain);
-			
 			segments = this.findSegments(graph, planeWorker.addedNodes);
-			
 			svgGraphDrawer.draw(planeWorker.nodes, planeWorker.edges);
 		}
+		return {
+			planaredGraph: planeWorker,
+			badSegments: badSegments,
+			graph: graph
+		};
+		/*var springEmbedderEdges = this.convertEdgesForSpringEmbedder(planeWorker.edges);
 		
+		var springEmbedderWorker = new SpringEmbedderWorker(svgField);
+		springEmbedderWorker.nodes = planeWorker.nodes;
+		springEmbedderWorker.edges = springEmbedderEdges;*/
+		
+		//springEmbedderWorker.oneIteration();
+		//for (var i = 0; i < 20; i++) {
+		//while (true) {
+			/*springEmbedderWorker.makeOneStabilization();*/
+			/*setInterval(() => {
+				springEmbedderWorker.oneIteration();
+				svgGraphDrawer.draw(planeWorker.nodes, planeWorker.edges);
+			}, 150);*/
+		//}
+		/*var badChain;
+		//put bad segments as is
+		while (badSegments.length !== 0) {
+			badChain = this.findChain(badSegments[0], badSegments[0].contactNodes[0], badSegments[0].contactNodes[1]);
+			
+			planeWorker.addBadChain(badChain);
+			this.removeChain(graph, badChain);
+			badSegments = this.findSegments(graph, planeWorker.addedNodes);
+			svgGraphDrawer.draw(planeWorker.nodes, planeWorker.edges);
+		}*/
 	}
 	
 	//awful algorithm, works in n^n time
@@ -70,7 +99,8 @@ function HammaAlgorithmWorker (svgField) {
 			
 			searchLoopInNeighbors(path.slice(), key, graph);
 		}
-		
+		/*!!!
+		pathResult = ["1", "2", "3", "4", "5", "6", "7"];*/
 		return transformPathResultToLoopAndEdges(pathResult);
 		
 		function searchLoopInNeighbors(path, nodeName, graph) {
@@ -265,6 +295,55 @@ function HammaAlgorithmWorker (svgField) {
 		});
 		
 		graph.removeEdgesWithRemovingAloneNodes(chainToDelete);
+	}
+	
+	this.useSpringEmbedder = function (planaredGraph) {
+		var springEmbedderEdges = this.convertEdgesForSpringEmbedder(planaredGraph.edges);
+		var springEmbedderWorker = new SpringEmbedderWorker(svgField);
+		springEmbedderWorker.nodes = planaredGraph.nodes;
+		springEmbedderWorker.edges = springEmbedderEdges;
+		
+		var svgGraphDrawer = new SvgGraphDrawer(svgField);
+		
+		var timer = setInterval(() => {
+			springEmbedderWorker.oneIteration();
+			svgGraphDrawer.draw(planaredGraph.nodes, planaredGraph.edges);
+		}, 150);
+		return timer;
+	}
+	
+	this.convertEdgesForSpringEmbedder = function (edges) {
+		var springEmbedderEdges = {};
+		for (var i = 0; i < edges.length; i++) {
+			if (!springEmbedderEdges[edges[i].begin]) {
+				springEmbedderEdges[edges[i].begin] = {};
+			}
+			springEmbedderEdges[edges[i].begin][edges[i].end] = true;
+			
+			if (!springEmbedderEdges[edges[i].end]) {
+				springEmbedderEdges[edges[i].end] = {};
+			}
+			springEmbedderEdges[edges[i].end][edges[i].begin] = true;
+		}
+		
+		return springEmbedderEdges;
+	}
+	
+	this.addNonPlanarEdges = function (component) {
+		var planaredGraph = component.planaredGraph;
+		var badSegments = component.badSegments;
+		var graph = component.graph;
+		
+		var badChain;
+		var svgGraphDrawer = new SvgGraphDrawer(svgField);
+		while (badSegments.length !== 0) {
+			badChain = this.findChain(badSegments[0], badSegments[0].contactNodes[0], badSegments[0].contactNodes[1]);
+			
+			planaredGraph.addBadChain(badChain);
+			this.removeChain(graph, badChain);
+			badSegments = this.findSegments(graph, planaredGraph.addedNodes);
+			svgGraphDrawer.draw(planaredGraph.nodes, planaredGraph.edges);
+		}
 	}
 }
 

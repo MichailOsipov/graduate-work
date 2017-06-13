@@ -1,4 +1,4 @@
-import {firstStep, makeOneStabilization, startStabilization} from 'spring-embedder';
+import SpringEmbedderWorker from 'spring-embedder';
 
 import AdjacencyList from 'adjacency-list';
 import {findBridges} from 'find-bridges';
@@ -6,8 +6,9 @@ import HammaAlgorithmWorker from 'hamma-algorithm';
 
 import './main.scss';
 
-var height = 800;
-var width = 1500;
+import {canvasSize} from 'canvas-parameters';
+var height = canvasSize.height;
+var width = canvasSize.width;
 
 var timerId;
 
@@ -45,42 +46,63 @@ document.getElementById("nodes-input").value = `1->2;1->3;1->4;1->4;1->5;
 2->3;2->4;2->5;
 3->4;3->5;
 4->5;`;
-var nodesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-nodesGroup.setAttribute('id', 'nodes');
 
-var edgesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-edgesGroup.setAttribute('id', 'edges');
+//spring-embedder
+var springEmbedderWorker = new SpringEmbedderWorker(drawField);
 
-var textGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-
-drawField.appendChild(edgesGroup);
-drawField.appendChild(nodesGroup);
-drawField.appendChild(textGroup);
-
-var toDraw = document.getElementById("to-draw");
-toDraw.addEventListener('click', function() {
+var randomizeNodesAndDraw = document.getElementById("randomize-nodes-and-draw");
+randomizeNodesAndDraw.addEventListener('click', function () {
 	var nodesText = document.getElementById("nodes-input").value.replace(/ |\n/g,'').split(';');
-	firstStep(nodesText, timerId, height, width, nodesGroup, edgesGroup);
+	springEmbedderWorker.firstStep(nodesText, height, width);
 });
 
 var calculateOffset = document.getElementById("calculate-offset");
-calculateOffset.addEventListener('click', function() {
-	makeOneStabilization(nodesGroup, edgesGroup);
+calculateOffset.addEventListener('click', function () {
+	springEmbedderWorker.makeOneStabilization();
 });
 
 var startStab = document.getElementById("start-stabilization");
-startStab.addEventListener('click', function() {
-	timerId = startStabilization(timerId, nodesGroup, edgesGroup);
+startStab.addEventListener('click', function () {
+	springEmbedderWorker.startStabilization();
 });
 
-var planarityFirstStep = document.getElementById("find-bridges");
+//hamma-algorithm
+var hammaAlgorithmWorker = new HammaAlgorithmWorker(drawField);
 
-planarityFirstStep.addEventListener('click', function() {
+var planarityFirstStep = document.getElementById("planarity");
+var planarComponents = [];
+planarityFirstStep.addEventListener('click', function () {
+	springEmbedderWorker.clearTimers();
 	var nodesText = document.getElementById("nodes-input").value.replace(/ |\n/g,'').split(';');
 	
 	var initGraph = new AdjacencyList();
 	initGraph.initializeFromText(nodesText);
 	
-	var hammaAlgorithmWorker = new HammaAlgorithmWorker(drawField);
-	hammaAlgorithmWorker.makePlanarity(initGraph);
+	planarComponents = hammaAlgorithmWorker.makePlanarity(initGraph);
+});
+
+var useSpringEmbedderToPlanarGraph = document.getElementById("planarity-to-spring");
+var timers = [];
+useSpringEmbedderToPlanarGraph.addEventListener('click', function () {
+	if (timers.length !== 0) {
+		stopTimers(timers);
+		timers = [];
+		return;
+	}
+	for (var i = 0; i < planarComponents.length; i++) {
+		var currTimer = hammaAlgorithmWorker.useSpringEmbedder(planarComponents[i].planaredGraph);
+		timers.push(currTimer);
+	}
+	function stopTimers (timers) {
+		for (var i = 0; i < timers.length; i++) {
+			clearInterval(timers[i]);
+		}
+	}
+});
+
+var addNonPlanarEdges = document.getElementById("add-non-planar-edges");
+addNonPlanarEdges.addEventListener('click', function () {
+	for (var i = 0; i < planarComponents.length; i++) {
+		hammaAlgorithmWorker.addNonPlanarEdges(planarComponents[i]);
+	}
 });

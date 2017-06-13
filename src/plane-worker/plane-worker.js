@@ -1,10 +1,15 @@
 import Plane from 'plane';
 import SvgGraphDrawer from 'svg-graph-drawer';
 
-const canvasSize = {
-	width: 800,
-	height: 800
+/*const canvasSize = {
+	width: 1800,
+	height: 1800
 }
+const center = {
+	x: 900,
+	y: 900
+};*/
+import {canvasSize, canvasCenter} from 'canvas-parameters';
 
 const nodeRadius = 15;
 
@@ -31,10 +36,6 @@ const canvasCorners = {
 	}
 };
 
-const center = {
-	x: 400,
-	y: 400
-};
 
 let uniqueHelpPointId = 1;
 
@@ -51,8 +52,8 @@ function PlaneWorker () {//добавить хранилище контактн�
 		
 		for (var i = 0; i < loop.length; i++) {
 			this.nodes[loop[i]] = {
-				x: center.x + radius * Math.cos(i * angle),
-				y: center.y + radius * Math.sin(i * angle),
+				x: canvasCenter.x + radius * Math.cos(i * angle),
+				y: canvasCenter.y + radius * Math.sin(i * angle),
 				type: "normal"
 			};
 		}
@@ -68,8 +69,6 @@ function PlaneWorker () {//добавить хранилище контактн�
 			begin: loop[0],
 			end: loop[loop.length - 1]
 		});
-		
-		//понять, надо ли добавить фиктивные ребра
 		
 		this.nodes["topLeft"] = canvasCorners.topLeft;
 		this.nodes["topRight"] = canvasCorners.topRight;
@@ -104,7 +103,8 @@ function PlaneWorker () {//добавить хранилище контактн�
 		
 		addPathToGraph(path, this.nodes, this.edges);
 		
-		//var newPlanes = plane.addChain(chain);
+		addChainToAddedNodes.call(this, chain);
+		
 		var helpPlaneInfo = {};
 		if (plane.isOuter) {
 			helpPlaneInfo = isPlaneLoopBroken(plane.loop, path, this.nodes);
@@ -122,6 +122,7 @@ function PlaneWorker () {//добавить хранилище контактн�
 		
 		this.planes.push(newPlanes[0]);
 		this.planes.push(newPlanes[1]);
+		
 		
 		function findTriangles (plane, nodes) {
 			var triangles = [];
@@ -373,6 +374,7 @@ function PlaneWorker () {//добавить хранилище контактн�
 				})
 				path.push(getPathElem(node2, nodes));
 				uniqueHelpPointId++;
+				return path;
 				
 				function getPathElem(nodeName, nodes) {
 					return {
@@ -535,6 +537,10 @@ function PlaneWorker () {//добавить хранилище контактн�
 			
 		}
 		
+		function addChainToAddedNodes(chain) {
+			this.addedNodes = this.addedNodes.concat(chain);
+		}
+		
 		function isPlaneLoopBroken(loop, path, nodes) {
 			var loopEdge = {
 				p1: {x: nodes[loop[0]].x, y: nodes[loop[0]].y},
@@ -591,6 +597,40 @@ function PlaneWorker () {//добавить хранилище контактн�
 				}
 				return newStartEdge.name;
 			}
+		}
+	}
+	
+	this.addBadChain = function (chain) {
+		var X = this.nodes[chain[0]].x - this.nodes[chain[chain.length - 1]].x;
+		var Y = this.nodes[chain[0]].y - this.nodes[chain[chain.length - 1]].y;
+		var deltaX = X / (chain.length - 1);
+		var deltaY = Y / (chain.length - 1);
+		
+		var initX = this.nodes[chain[0]].x;
+		var initY = this.nodes[chain[0]].y;
+		
+		for (var i = 1; i < chain.length - 1; i++) {
+			this.nodes[chain[i]] = {
+				type: "bad-normal",
+				x: initX + deltaX,
+				y: initY + deltaY
+			};
+			initX += deltaX;
+			initY += deltaY;
+		}
+		
+		for (var i = 0; i < chain.length - 1; i++) {
+			this.edges.push({
+				begin: chain[i],
+				end: chain[i + 1],
+				isBad: true
+			});
+		}
+		
+		addChainToAddedNodes.call(this, chain);
+		
+		function addChainToAddedNodes(chain) {
+			this.addedNodes = this.addedNodes.concat(chain);
 		}
 	}
 }

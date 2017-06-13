@@ -21,7 +21,7 @@ function AdjacencyList() {
 				var currNode = nodesText[i].split("->");
 				this.addNode(currNode[0]);
 				
-				if(currNode[1])	{
+				if(currNode[1]) {
 					this.addNode(currNode[1]);
 					this.addEdge(currNode[0], currNode[1]);
 				}

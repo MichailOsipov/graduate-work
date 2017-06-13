@@ -25,6 +25,7 @@
     "adjacency-list": "./src/adjacency-list/adjacency-list",
     "plane": "./src/plane/plane",
     "plane-worker": "./src/plane-worker/plane-worker",
-    "svg-graph-drawer": "./src/svg-graph-drawer/svg-graph-drawer"
+    "svg-graph-drawer": "./src/svg-graph-drawer/svg-graph-drawer",
+    "canvas-parameters": "./src/canvas-parameters/canvas-parameters"
   }
 }
