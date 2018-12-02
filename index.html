@@ -1,0 +1,29 @@
+<html>
+	<head>
+		<title>Graph drawing</title>
+		<meta charset="utf-8">
+		<link rel="stylesheet" type="text/css" href="styles.css"> 
+	</head>
+<body>
+    <div id="menu">
+		<div class="form">
+			<div style="margin-top:5px">
+				<span>Вершины:</span><br>
+				<textarea id="nodes-input" name="nodes" cols="40" rows="3" style="margin-top: 5px"></textarea><br>
+				<p>Spring embedder:</p>
+				<input id="randomize-nodes-and-draw" type="submit" value="Расположить вершины и нарисовать"  style="margin-top: 5px">
+				<input id="calculate-offset" type="submit" value="Выполнить одну стабилизацию"  style="margin-top: 5px">
+				<input id="start-stabilization" type="submit" value="Стабилизировать"  style="margin-top: 5px">
+				<p>Hamma algorithm:</p>
+				<input id="planarity" type="submit" value="Планаризовать граф" >
+				<input id="planarity-to-spring" type="submit" value="Применить spring embedder к планарному графу" style="margin-top: 5px">
+				<input id="add-non-planar-edges" type="submit" value="Добавить непланарные ребра" style="margin-top: 5px">
+			</div>
+		</div>
+	</div>
+    <div id="workField">
+        <svg id="drawField"></svg>
+    </div>
+		<script src="bundle.js"></script>
+	</body>
+</html>
